@@ -326,8 +326,9 @@
     padding-top: 20px;
     border-top: 1px solid var(--stroke-soft);
   }
-  .support-head{ margin-bottom: 12px; }
+  .support-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 12px; }
   .support-head h2{ font-size: 12px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color: var(--text-dim); }
+  .support-total{ font-size: 12.5px; font-weight: 800; color: var(--amber); }
 
   .support-pay{
     background: rgba(255,255,255,0.045);
@@ -366,6 +367,74 @@
   .pay-copy:hover{ color: var(--bg-deep); border-color: var(--amber); background: var(--amber); }
   .pay-note{ font-size: 10.5px; color: var(--text-faint); margin-top: 12px; line-height: 1.6; }
 
+  .donate-form{
+    display: grid;
+    grid-template-columns: 1fr 90px auto;
+    gap: 7px;
+    margin-bottom: 10px;
+  }
+  .donate-form input{
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--stroke-soft);
+    border-radius: 12px;
+    padding: 10px 11px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    min-width: 0;
+  }
+  .donate-form input:focus{ outline: none; border-color: var(--amber); }
+  .donate-form input::placeholder{ color: var(--text-faint); }
+  .donate-form button{
+    background: var(--amber);
+    color: var(--bg-deep);
+    border: none;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: filter 0.2s ease;
+  }
+  .donate-form button:hover{ filter: brightness(1.08); }
+  .donate-form button:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .pending-note{ font-size: 10.5px; color: var(--text-faint); margin: 0 0 12px; line-height:1.6; }
+  .pending-list{ display:flex; flex-direction:column; gap:6px; margin-bottom: 16px; }
+  .pending-item{
+    display:flex; align-items:center; gap:8px;
+    background: rgba(255,255,255,0.035); border:1px solid var(--stroke-soft); border-radius:12px;
+    padding:7px 11px; font-size:11.5px;
+  }
+  .pending-item .p-name{ flex:1; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pending-item .p-tag{
+    font-size:10px; font-weight:800; color: var(--amber); background: var(--amber-dim);
+    padding:3px 9px; border-radius:999px; flex-shrink:0;
+  }
+
+  .top-donors{ margin-bottom: 4px; }
+  .top-donors h3{ font-size: 10.5px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color: var(--text-dim); margin-bottom: 8px; }
+  .donor-row{
+    display:flex; align-items:center; gap: 10px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid var(--stroke-soft);
+    border-radius: 12px;
+    padding: 8px 11px;
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  .donor-rank{ font-size: 14px; width: 20px; text-align:center; flex-shrink:0; }
+  .donor-name{ flex: 1; font-weight: 700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .donor-amt{ color: var(--amber); font-weight: 800; font-size: 11.5px; }
+
+  .admin-link{
+    display:inline-block; margin-top: 10px; font-size: 10px; color: var(--text-faint);
+    opacity: 0.55; cursor:pointer; text-decoration: underline;
+  }
+  .admin-link:hover{ opacity: 1; }
+
   .dev-credit{
     margin-top: 16px;
     padding-top: 14px;
@@ -378,6 +447,71 @@
   .dev-credit b{ color: var(--text); }
   .dev-credit a{ color: var(--azure); text-decoration: none; }
   .dev-credit a:hover{ text-decoration: underline; }
+
+  /* -------- Admin modal -------- */
+  .admin-card{
+    width: 100%; max-width: 400px;
+    background: linear-gradient(165deg, rgba(16,20,28,0.95), rgba(10,13,19,0.92) 55%, rgba(7,9,13,0.95));
+    backdrop-filter: blur(34px) saturate(170%);
+    -webkit-backdrop-filter: blur(34px) saturate(170%);
+    border: 1px solid var(--stroke);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 40px 90px -20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.16);
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .admin-card h2{ font-size: 14px; font-weight:800; margin-bottom: 14px; }
+  .admin-login{ display:flex; gap:8px; }
+  .admin-login input{
+    flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--stroke-soft); border-radius:12px;
+    padding:10px 11px; color:var(--text); font-family:'Inter',sans-serif; font-size:12.5px;
+  }
+  .admin-login button, .admin-close-btn{
+    background: var(--amber); color:var(--bg-deep); border:none; border-radius:12px;
+    padding:10px 15px; font-weight:800; font-size:12.5px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .admin-err{ color: var(--sell); font-size:11px; margin-top:9px; }
+  .admin-pending-row{
+    display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.04); border:1px solid var(--stroke-soft);
+    border-radius:12px; padding:9px 10px; margin-bottom:8px; font-size:11.5px;
+  }
+  .admin-pending-row .ap-name{ flex:1; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .admin-pending-row input{
+    width:88px; background:rgba(255,255,255,0.06); border:1px solid var(--stroke-soft); border-radius:9px;
+    padding:6px 7px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:11px;
+  }
+  .admin-pending-row .ap-ok{ background:var(--buy-dim); color:var(--buy); border:none; border-radius:9px; padding:6px 10px; font-weight:800; font-size:10.5px; cursor:pointer; }
+  .admin-pending-row .ap-no{ background:var(--sell-dim); color:var(--sell); border:none; border-radius:9px; padding:6px 9px; font-weight:800; font-size:10.5px; cursor:pointer; }
+  .admin-close-row{ margin-top:16px; text-align:right; }
+
+  /* -------- Streamer-style donation toast -------- */
+  .toast-stack{
+    position: fixed;
+    top: 16px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 3000;
+    display:flex; flex-direction:column; gap: 8px;
+    width: 100%; max-width: 380px;
+    padding: 0 14px;
+    pointer-events: none;
+  }
+  .donate-toast{
+    display:flex; align-items:center; gap: 12px;
+    background: linear-gradient(120deg, rgba(255,194,102,0.22), rgba(16,20,28,0.92));
+    border: 1px solid rgba(255,194,102,0.55);
+    border-radius: 16px;
+    padding: 13px 15px;
+    box-shadow: 0 0 40px -8px var(--amber-glow), 0 20px 50px -15px rgba(0,0,0,0.7);
+    opacity: 0;
+    transform: translateY(-16px) scale(0.96);
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(.2,1,.3,1);
+  }
+  .donate-toast.show{ opacity: 1; transform: translateY(0) scale(1); }
+  .donate-toast .dt-icon{ font-size: 22px; flex-shrink:0; }
+  .donate-toast .dt-text{ flex:1; min-width:0; }
+  .donate-toast .dt-name{ font-size: 13px; font-weight:800; color: var(--text); }
+  .donate-toast .dt-amt{ font-size: 12px; font-weight:700; color: var(--amber); margin-top: 2px; }
 
   /* -------- Detail modal -------- */
   .modal-overlay{
@@ -631,6 +765,7 @@
   <div class="support-section">
     <div class="support-head">
       <h2>สนับสนุนผู้พัฒนา</h2>
+      <span class="support-total mono" id="donateTotal">รวม ₭0</span>
     </div>
 
     <div class="support-pay">
@@ -650,8 +785,22 @@
         <button class="pay-copy" id="accCopyBtn" onclick="copyAccountNumber()">คัดลอก</button>
       </div>
       <div class="pay-note">
-        โอนเข้าบัญชีเลขด้านบน (สกุลเงินกีบ / LAK) ได้โดยตรง ขอบพระคุณสำหรับการสนับสนุนครับ/ค่ะ 🙏
+        โอนเข้าบัญชีเลขด้านบน (สกุลเงินกีบ / LAK) แล้วกรอกชื่อ + จำนวนเงินที่โอนด้านล่าง กด "แจ้งว่าโอนแล้ว" — ทีมงานจะตรวจสลิปแล้วยืนยันยอดจริงก่อนขึ้นบอร์ด Top ผู้สนับสนุน ขอบพระคุณสำหรับการสนับสนุนครับ/ค่ะ 🙏
       </div>
+    </div>
+
+    <div class="donate-form">
+      <input type="text" id="donorName" placeholder="ชื่อผู้บริจาค" maxlength="24">
+      <input type="number" id="donorAmount" placeholder="จำนวน ₭" min="1">
+      <button id="donateBtn" onclick="submitDonation()">แจ้งว่าโอนแล้ว</button>
+    </div>
+    <div class="pending-note" id="pendingNote">รายการที่แจ้งจะขึ้นเป็น "รอยืนยัน" ก่อน แล้วย้ายไปบอร์ด Top ผู้สนับสนุนหลังตรวจสอบยอดจริงแล้ว (แจ้งได้ 1 ครั้งทุก 5 นาที)</div>
+
+    <div class="pending-list" id="pendingList"></div>
+
+    <div class="top-donors">
+      <h3>Top ผู้สนับสนุน</h3>
+      <div id="topDonorsList"><div class="history-empty">ยังไม่มีผู้สนับสนุน</div></div>
     </div>
 
     <div class="dev-credit">
@@ -660,7 +809,28 @@
       <b>ช่องทางติดต่อ</b><br>
       Facebook: Jerry Souknilanh · IG: <a href="https://instagram.com/jerry_snl" target="_blank" rel="noopener">@jerry_snl</a> · TikTok: <a href="https://tiktok.com/@jerry_kub" target="_blank" rel="noopener">@jerry_kub</a><br>
       WhatsApp: <a href="tel:02091121476">02091121476</a>
+      <br>
+      <span class="admin-link" onclick="openAdmin()">admin</span>
     </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<div class="warn-overlay" id="adminOverlay" style="display:none;">
+  <div class="admin-card">
+    <h2>Admin — ยืนยันยอดบริจาค</h2>
+    <div id="adminLoginBlock">
+      <div class="admin-login">
+        <input type="password" id="adminPass" placeholder="รหัสผ่าน" onkeydown="if(event.key==='Enter') adminLogin()">
+        <button onclick="adminLogin()">เข้าสู่ระบบ</button>
+      </div>
+      <div class="admin-err" id="adminErr" style="display:none;">รหัสผ่านไม่ถูกต้อง</div>
+    </div>
+    <div id="adminPanelBlock" style="display:none;">
+      <div id="adminPendingList"></div>
+    </div>
+    <div class="admin-close-row"><button class="admin-close-btn" onclick="closeAdmin()">ปิด</button></div>
   </div>
 </div>
 
@@ -787,18 +957,53 @@ const firebaseConfig = {
 };
 
 let historyLog = [];
-let fbPush = null, fbHistoryRef = null;
+let donations = [];
+let pendingDonations = [];
+let fbDb = null, fbRef = null, fbPush = null, fbRemove = null, fbUpdate = null;
+let fbHistoryRef = null, fbDonationsRef = null, fbPendingRef = null;
+let fbAuth = null, fbSignIn = null, fbSignOut = null;
+let adminLoggedIn = false;
+const PAGE_LOAD_TS = Date.now();
+
+// Real admin gate: a Firebase Auth account (email/password), created
+// once in the Firebase Console — not a password sitting in this file.
+// This email is just a fixed "username" for that one account; it is
+// not a secret. The actual secret (the password) is never in this
+// code — it only ever lives in the admin's head + Firebase's own
+// auth system, and Database Rules require being signed in as this
+// exact account before any write to donations/ is allowed.
+const ADMIN_EMAIL = 'admin@multi-coin-dashboard.app';
 
 async function initFirebaseHistorySync(){
   try{
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-    const { getDatabase, ref, push, query, limitToLast, onValue } =
+    const { getDatabase, ref, push, remove, update, query, limitToLast, onValue, onChildAdded } =
       await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+    const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } =
+      await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    fbHistoryRef = ref(db, 'history');
+    fbDb = db;
+    fbRef = ref;
     fbPush = push;
+    fbRemove = remove;
+    fbUpdate = update;
+    fbHistoryRef = ref(db, 'history');
+    fbDonationsRef = ref(db, 'donations');
+    fbPendingRef = ref(db, 'pendingDonations');
+
+    fbAuth = getAuth(app);
+    fbSignIn = (password) => signInWithEmailAndPassword(fbAuth, ADMIN_EMAIL, password);
+    fbSignOut = () => signOut(fbAuth);
+    onAuthStateChanged(fbAuth, (user) => {
+      adminLoggedIn = !!user;
+      const loginBlock = document.getElementById('adminLoginBlock');
+      const panelBlock = document.getElementById('adminPanelBlock');
+      if(loginBlock) loginBlock.style.display = adminLoggedIn ? 'none' : 'block';
+      if(panelBlock) panelBlock.style.display = adminLoggedIn ? 'block' : 'none';
+      if(adminLoggedIn) renderAdminPending();
+    });
 
     const recentQuery = query(fbHistoryRef, limitToLast(MAX_HISTORY));
     onValue(recentQuery, (snapshot) => {
@@ -812,9 +1017,34 @@ async function initFirebaseHistorySync(){
       }).filter(Boolean);
       renderHistory();
     });
+
+    onValue(fbDonationsRef, (snapshot) => {
+      const rows = [];
+      snapshot.forEach(child => { rows.push({ id: child.key, ...child.val() }); });
+      donations = rows;
+      renderDonations();
+    });
+
+    // Streamer-style alert: fires for every confirmed donation, but we
+    // only pop a toast for ones confirmed AFTER this tab loaded — so
+    // opening the page doesn't replay the entire donor history at once.
+    onChildAdded(fbDonationsRef, (snapshot) => {
+      const d = snapshot.val();
+      if(d && d.confirmedAt && d.confirmedAt > PAGE_LOAD_TS){
+        showDonationToast(d.name, d.amount);
+      }
+    });
+
+    onValue(fbPendingRef, (snapshot) => {
+      const rows = [];
+      snapshot.forEach(child => { rows.push({ id: child.key, ...child.val() }); });
+      pendingDonations = rows.reverse();
+      renderPending();
+      if(adminLoggedIn) renderAdminPending();
+    });
   } catch(err){
     // Sync unavailable (offline, blocked, etc) — signals still show
-    // live locally, they just won't have shared history for now.
+    // live locally, they just won't have shared history/donations for now.
     const list = document.getElementById('historyList');
     if(list) list.innerHTML = '<div class="history-empty">ซิงค์ประวัติไม่สำเร็จ — ลองรีเฟรชหน้าใหม่</div>';
   }
@@ -852,8 +1082,9 @@ function renderHistory(){
 }
 
 // -----------------------------------------------------------------
-// Donate / payment info (BCEL One, LAK) — display only, nothing here
-// is submitted, stored, or synced anywhere.
+// Donate / payment info (BCEL One, LAK) — this account info itself is
+// static display, but donations submitted below ARE synced to Firebase
+// (see submitDonation() / admin panel further down).
 // -----------------------------------------------------------------
 const ACCOUNT_HOLDER = 'KHOUNTHAVISAP SOUKNILAN MR';
 const ACCOUNT_NUMBER = '020-12-00-01565986-001';
@@ -897,6 +1128,197 @@ function copyAccountNumber(){
   } else {
     fallbackCopy();
   }
+}
+
+// -----------------------------------------------------------------
+// Admin password — this is a CLIENT-SIDE check only (anyone who views
+// the page source can read this constant). It stops casual visitors
+// from self-confirming donations, but it is NOT real security against
+// someone who inspects the file. For real protection this whole flow
+// would need a server; here the actual gate against fake amounts is
+// that a real bank transfer still has to be manually checked.
+// -----------------------------------------------------------------
+const ADMIN_PASSWORD = 'Admintnj33hn89g3gvu32ngn3jng5';
+
+// Anti-spam: minimum time between two donation submissions from this
+// browser, regardless of the name typed in.
+const SUBMIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const COOLDOWN_STORAGE_KEY = 'lastDonationSubmitAt';
+
+function getCooldownRemainingMs(){
+  const last = parseInt(localStorage.getItem(COOLDOWN_STORAGE_KEY) || '0', 10);
+  return Math.max(0, SUBMIT_COOLDOWN_MS - (Date.now() - last));
+}
+
+function updateDonateCooldownUI(){
+  const btn = document.getElementById('donateBtn');
+  if(!btn) return;
+  const remaining = getCooldownRemainingMs();
+  if(remaining > 0){
+    btn.disabled = true;
+    const mm = Math.floor(remaining / 60000);
+    const ss = Math.floor((remaining % 60000) / 1000);
+    btn.textContent = `รออีก ${mm}:${String(ss).padStart(2,'0')}`;
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'แจ้งว่าโอนแล้ว';
+  }
+}
+setInterval(updateDonateCooldownUI, 1000);
+updateDonateCooldownUI();
+
+// -----------------------------------------------------------------
+// Donations — donor submits a NAME and the AMOUNT they actually
+// transferred. It lands in the shared "pending" queue immediately
+// (everyone sees it as "รอยืนยัน" near-instantly via Firebase). Only
+// the admin (password-gated panel below) can confirm it — checking
+// the claimed amount against the real bank transfer — before it
+// counts toward the total / Top donor board and fires the toast
+// alert for everyone watching. A 5-minute per-browser cooldown plus
+// the admin's manual review are what stop spam and people claiming
+// fake amounts under someone else's name.
+// -----------------------------------------------------------------
+function submitDonation(){
+  if(getCooldownRemainingMs() > 0 || !fbPush || !fbPendingRef){
+    updateDonateCooldownUI();
+    return;
+  }
+
+  const nameEl = document.getElementById('donorName');
+  const amountEl = document.getElementById('donorAmount');
+  const name = nameEl.value.trim().slice(0,24);
+  const amount = parseFloat(amountEl.value);
+
+  if(!name){ nameEl.focus(); return; }
+  if(!amount || amount <= 0 || !isFinite(amount)){ amountEl.focus(); return; }
+
+  const t = getSyncedTime();
+  const pad = n => String(n).padStart(2,'0');
+  const timeStr = `${pad(t.getUTCDate())}/${pad(t.getUTCMonth()+1)} ${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`;
+
+  fbPush(fbPendingRef, { name, amount, time: timeStr }).catch(() => {});
+
+  nameEl.value = '';
+  amountEl.value = '';
+  localStorage.setItem(COOLDOWN_STORAGE_KEY, String(Date.now()));
+  updateDonateCooldownUI();
+}
+
+function renderPending(){
+  const wrap = document.getElementById('pendingList');
+  if(!wrap) return;
+  if(pendingDonations.length === 0){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = pendingDonations.slice(0,10).map(p => `
+    <div class="pending-item">
+      <span class="p-name">${escapeHtml(p.name)}${p.amount ? ' · ₭' + Number(p.amount).toLocaleString() : ''}</span>
+      <span class="p-tag">รอยืนยัน</span>
+    </div>
+  `).join('');
+}
+
+function renderDonations(){
+  const total = donations.reduce((sum, d) => sum + (d.amount || 0), 0);
+  const totalEl = document.getElementById('donateTotal');
+  if(totalEl) totalEl.textContent = 'รวม ₭' + total.toLocaleString();
+
+  const byName = {};
+  donations.forEach(d => {
+    const key = d.name || 'ผู้ไม่ประสงค์ออกนาม';
+    byName[key] = (byName[key] || 0) + (d.amount || 0);
+  });
+  const top = Object.entries(byName).sort((a,b) => b[1]-a[1]).slice(0,5);
+
+  const list = document.getElementById('topDonorsList');
+  if(!list) return;
+  if(top.length === 0){ list.innerHTML = '<div class="history-empty">ยังไม่มีผู้สนับสนุน</div>'; return; }
+  const medals = ['🥇','🥈','🥉'];
+  list.innerHTML = top.map((entry, i) => `
+    <div class="donor-row">
+      <span class="donor-rank">${medals[i] || (i+1) + '.'}</span>
+      <span class="donor-name">${escapeHtml(entry[0])}</span>
+      <span class="donor-amt mono">₭${entry[1].toLocaleString()}</span>
+    </div>
+  `).join('');
+}
+
+// -----------------------------------------------------------------
+// Streamer-style alert — pops a toast for every newly confirmed
+// donation, for everyone with the page open, real-time.
+// -----------------------------------------------------------------
+function showDonationToast(name, amount){
+  const stack = document.getElementById('toastStack');
+  if(!stack) return;
+  const el = document.createElement('div');
+  el.className = 'donate-toast';
+  el.innerHTML = `
+    <span class="dt-icon">🎉</span>
+    <span class="dt-text">
+      <span class="dt-name">${escapeHtml(name)} สนับสนุนแล้ว!</span>
+      <span class="dt-amt">₭${Number(amount).toLocaleString()}</span>
+    </span>
+  `;
+  stack.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 400);
+  }, 5000);
+}
+
+// -----------------------------------------------------------------
+// Admin panel — password gate + confirm/reject each pending donation.
+// Confirm is pre-filled with the amount the donor claimed; the admin
+// can edit it before confirming (after checking the real bank slip)
+// or just reject anything that looks like spam.
+// -----------------------------------------------------------------
+function openAdmin(){ document.getElementById('adminOverlay').style.display = 'flex'; }
+function closeAdmin(){ document.getElementById('adminOverlay').style.display = 'none'; }
+
+function adminLogin(){
+  const pass = document.getElementById('adminPass').value;
+  if(pass === ADMIN_PASSWORD){
+    adminLoggedIn = true;
+    document.getElementById('adminLoginBlock').style.display = 'none';
+    document.getElementById('adminPanelBlock').style.display = 'block';
+    document.getElementById('adminErr').style.display = 'none';
+    renderAdminPending();
+  } else {
+    document.getElementById('adminErr').style.display = 'block';
+  }
+}
+
+function renderAdminPending(){
+  const wrap = document.getElementById('adminPendingList');
+  if(!wrap) return;
+  if(pendingDonations.length === 0){
+    wrap.innerHTML = '<div class="history-empty">ไม่มีรายการรอยืนยัน</div>';
+    return;
+  }
+  wrap.innerHTML = pendingDonations.map(p => `
+    <div class="admin-pending-row">
+      <span class="ap-name">${escapeHtml(p.name)} · ${p.time}</span>
+      <input type="number" placeholder="จำนวน ₭" id="amt-${p.id}" min="1" value="${p.amount || ''}">
+      <button class="ap-ok" onclick="confirmPending('${p.id}')">ยืนยัน</button>
+      <button class="ap-no" onclick="rejectPending('${p.id}')">ลบ</button>
+    </div>
+  `).join('');
+}
+
+function confirmPending(id){
+  if(!fbDb || !fbRef || !fbPush || !fbRemove) return;
+  const p = pendingDonations.find(x => x.id === id);
+  if(!p) return;
+  const amtEl = document.getElementById('amt-' + id);
+  const amt = parseFloat(amtEl.value);
+  if(!amt || amt <= 0 || !isFinite(amt)){ amtEl.focus(); return; }
+
+  fbPush(fbDonationsRef, { name: p.name, amount: amt, time: p.time, confirmedAt: Date.now() }).catch(() => {});
+  fbRemove(fbRef(fbDb, 'pendingDonations/' + id)).catch(() => {});
+}
+
+function rejectPending(id){
+  if(!fbDb || !fbRef || !fbRemove) return;
+  fbRemove(fbRef(fbDb, 'pendingDonations/' + id)).catch(() => {});
 }
 
 // -----------------------------------------------------------------
