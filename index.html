@@ -486,6 +486,31 @@
   .modal-detail .v.sell{ color: var(--sell); }
   .modal-detail .v.neutral{ color: var(--amber); }
 
+  /* -------- History (signal log, synced via Firebase) -------- */
+  .history-head{ display:flex; justify-content:space-between; align-items:baseline; margin: 18px 0 8px; }
+  .history-head h2{ font-size: 12px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color: var(--text-dim); }
+  .history-head .count{ font-size: 10px; color: var(--text-faint); }
+
+  .history-list{ max-height: 220px; overflow-y: auto; display:flex; flex-direction:column; gap: 6px; }
+  .history-empty{ font-size: 11.5px; color: var(--text-faint); padding: 12px 0; text-align:center; }
+
+  .hist-item{
+    display:flex; align-items:center; gap: 9px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid var(--stroke-soft);
+    border-radius: 12px;
+    padding: 7px 11px;
+    font-size: 11.5px;
+  }
+  .hist-time{ color: var(--text-faint); font-size: 10px; min-width: 78px; }
+  .hist-icon{ width: 20px; height: 20px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
+  .hist-icon svg{ width: 14px; height: 14px; }
+  .hist-sym{ font-weight: 700; flex: 1; }
+  .hist-conf{ font-size: 10px; color: var(--text-faint); margin-right: 4px; }
+  .hist-dir{ font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+  .hist-dir.buy{ background: var(--buy-dim); color: var(--buy); }
+  .hist-dir.sell{ background: var(--sell-dim); color: var(--sell); }
+
   .modal-lean-line{ margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--stroke-soft); font-size: 13px; font-weight: 700; color: var(--text-dim); }
   .modal-lean-line.buy{ color: var(--buy); }
   .modal-lean-line.sell{ color: var(--sell); }
@@ -591,8 +616,16 @@
 
   <div class="symbol-grid" id="symbolGrid"></div>
 
+  <div class="history-head">
+    <h2>ประวัติสัญญาณ</h2>
+    <span class="count mono" id="histCount">0/20</span>
+  </div>
+  <div class="history-list" id="historyList">
+    <div class="history-empty">ยังไม่มีประวัติ</div>
+  </div>
+
   <div class="footnote">
-    ข้อมูลราคาจริงจาก Binance · ล็อกสัญญาณเมื่ออย่างน้อย 3/4 อินดิเคเตอร์เห็นตรงกัน (EMA/RSI/แท่งเทียน/MACD histogram) ไม่ใช่คำแนะนำการลงทุน ไม่การันตีวินเรท
+    ข้อมูลราคาจริงจาก Binance · ประวัติสัญญาณซิงค์ผ่านระบบกลาง (ทุกคนที่เปิดเว็บนี้เห็นชุดเดียวกัน) · ล็อกสัญญาณเมื่ออย่างน้อย 3/4 อินดิเคเตอร์เห็นตรงกัน (EMA/RSI/แท่งเทียน/MACD histogram) ไม่ใช่คำแนะนำการลงทุน ไม่การันตีวินเรท
   </div>
 
   <div class="support-section">
@@ -730,6 +763,93 @@ const ENTRY_S = 30, RESULT_S = 30, LOCK_AT = 10;
 const UTC_OFFSET_HOURS = 7;
 const MONTHS_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const WEEKDAYS_TH = ['วันอาทิตย์','วันจันทร์','วันอังคาร','วันพุธ','วันพฤหัสบดี','วันศุกร์','วันเสาร์'];
+const MAX_HISTORY = 20;
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// -----------------------------------------------------------------
+// Firebase Realtime Database — shared signal history, synced live
+// across every browser that has this page open. The config below is
+// a PUBLIC client identifier (not a secret) — this is how every
+// Firebase web app is set up; access is actually controlled by the
+// database's Security Rules, not by hiding this object.
+// -----------------------------------------------------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyBq8CnFb_-2oZ9H6Jw2cu3s1kCjOE1x88o",
+  authDomain: "multi-coin-dashboard.firebaseapp.com",
+  databaseURL: "https://multi-coin-dashboard-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "multi-coin-dashboard",
+  storageBucket: "multi-coin-dashboard.firebasestorage.app",
+  messagingSenderId: "553260678470",
+  appId: "1:553260678470:web:673c2a1e984963fdfbb947"
+};
+
+let historyLog = [];
+let fbPush = null, fbHistoryRef = null;
+
+async function initFirebaseHistorySync(){
+  try{
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    const { getDatabase, ref, push, query, limitToLast, onValue } =
+      await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    fbHistoryRef = ref(db, 'history');
+    fbPush = push;
+
+    const recentQuery = query(fbHistoryRef, limitToLast(MAX_HISTORY));
+    onValue(recentQuery, (snapshot) => {
+      const rows = [];
+      snapshot.forEach(child => { rows.push(child.val()); });
+      // Realtime Database returns oldest→newest for limitToLast; we
+      // want newest-first for display.
+      historyLog = rows.reverse().map(row => {
+        const cfg = SYMBOLS.find(c => c.binance === row.binance);
+        return cfg ? { time: row.time, cfg, direction: row.direction, confluence: row.confluence } : null;
+      }).filter(Boolean);
+      renderHistory();
+    });
+  } catch(err){
+    // Sync unavailable (offline, blocked, etc) — signals still show
+    // live locally, they just won't have shared history for now.
+    const list = document.getElementById('historyList');
+    if(list) list.innerHTML = '<div class="history-empty">ซิงค์ประวัติไม่สำเร็จ — ลองรีเฟรชหน้าใหม่</div>';
+  }
+}
+initFirebaseHistorySync();
+
+function pushHistoryToFirebase(cfg, direction, confluence){
+  const t = getSyncedTime();
+  const pad = n => String(n).padStart(2,'0');
+  const timeStr = `${pad(t.getUTCDate())}/${pad(t.getUTCMonth()+1)} ${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}:${pad(t.getUTCSeconds())}`;
+  if(!fbPush || !fbHistoryRef) return; // sync not ready yet — signal still shows live locally
+  fbPush(fbHistoryRef, { time: timeStr, binance: cfg.binance, direction, confluence }).catch(() => {});
+}
+
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  const count = document.getElementById('histCount');
+  if(!list) return;
+  if(count) count.textContent = historyLog.length + '/' + MAX_HISTORY;
+
+  if(historyLog.length === 0){
+    list.innerHTML = '<div class="history-empty">ยังไม่มีประวัติ</div>';
+    return;
+  }
+
+  list.innerHTML = historyLog.map(h => `
+    <div class="hist-item">
+      <span class="hist-time mono">${h.time}</span>
+      <span class="hist-icon" style="background:${h.cfg.bg};">${h.cfg.icon}</span>
+      <span class="hist-sym">${escapeHtml(h.cfg.pair)}</span>
+      <span class="hist-conf mono">${h.confluence}/4</span>
+      <span class="hist-dir ${h.direction}">${h.direction === 'buy' ? 'BUY' : 'SELL'}</span>
+    </div>
+  `).join('');
+}
 
 // -----------------------------------------------------------------
 // Donate / payment info (BCEL One, LAK) — display only, nothing here
@@ -1113,8 +1233,9 @@ function tickSymbolPhase(state){
   }
 }
 
-// Locking a signal only updates this symbol's own live state for the
-// current round — nothing is written to any history or storage.
+// Locking a signal updates this symbol's live state for the current
+// round AND pushes the locked signal to Firebase, so every browser
+// with this page open sees the same shared history.
 function lockSymbolSignal(state){
   state.locked = true;
   const need = Math.max(EMA_SLOW, RSI_PERIOD+1) + CONFIRM;
@@ -1125,6 +1246,7 @@ function lockSymbolSignal(state){
   }
   state.lockedDirection = state.currentDirection;
   state.lockedConfluence = state.currentConfluence;
+  pushHistoryToFirebase(state.cfg, state.lockedDirection, state.lockedConfluence);
 }
 
 function tickAllPhases(){
