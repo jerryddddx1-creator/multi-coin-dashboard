@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Coin Order Flow</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    /* ---- Liquid Glass token system ---- */
+    --bg-deep:       #05070a;
+    --text:          #f3f5f9;
+    --text-dim:      #97a2b4;
+    --text-faint:    #667082;
+
+    --glass:         rgba(255,255,255,0.085);
+    --glass-hi:      rgba(255,255,255,0.17);
+    --glass-lo:      rgba(255,255,255,0.035);
+    --stroke:        rgba(255,255,255,0.24);
+    --stroke-soft:   rgba(255,255,255,0.14);
+    --sheen:         rgba(255,255,255,0.55);
+
+    --buy:           #32e6a8;
+    --buy-dim:       rgba(50,230,168,0.16);
+    --buy-glow:      rgba(50,230,168,0.45);
+    --sell:          #ff6b85;
+    --sell-dim:      rgba(255,107,133,0.16);
+    --sell-glow:     rgba(255,107,133,0.45);
+    --amber:         #ffc266;
+    --amber-dim:     rgba(255,194,102,0.16);
+    --amber-glow:    rgba(255,194,102,0.45);
+    --azure:         #6fb7ff;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  ::selection{ background: rgba(111,183,255,0.3); }
+
+  html, body{ height:auto; min-height:100%; }
+
+  body{
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: 'Inter', 'Manrope', sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 28px 14px;
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    letter-spacing: -0.01em;
+  }
+
+  .mono{ font-family:'JetBrains Mono', monospace; letter-spacing:0; }
+
+  /* ---------------------------------------------------------------
+     Ambient liquid background — slow-drifting blurred color orbs
+     that sit behind the frosted glass card, giving the light/refract
+     feeling behind the glass without ever being sharp themselves.
+  --------------------------------------------------------------- */
+  .orb{
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.55;
+    z-index: 0;
+    pointer-events: none;
+    will-change: transform;
+  }
+  .orb-1{
+    width: 520px; height: 520px;
+    top: -180px; left: -140px;
+    background: radial-gradient(circle at 35% 35%, #3d7bff, transparent 70%);
+    animation: driftA 22s ease-in-out infinite;
+  }
+  .orb-2{
+    width: 480px; height: 480px;
+    bottom: -200px; right: -160px;
+    background: radial-gradient(circle at 60% 60%, #32e6a8, transparent 70%);
+    animation: driftB 26s ease-in-out infinite;
+  }
+  .orb-3{
+    width: 380px; height: 380px;
+    top: 40%; right: 8%;
+    background: radial-gradient(circle at 50% 50%, #ffc266, transparent 70%);
+    opacity: 0.28;
+    animation: driftC 30s ease-in-out infinite;
+  }
+  @keyframes driftA{
+    0%,100%{ transform: translate(0,0) scale(1); }
+    50%{ transform: translate(60px,40px) scale(1.08); }
+  }
+  @keyframes driftB{
+    0%,100%{ transform: translate(0,0) scale(1); }
+    50%{ transform: translate(-50px,-30px) scale(1.1); }
+  }
+  @keyframes driftC{
+    0%,100%{ transform: translate(0,0) scale(1); }
+    50%{ transform: translate(-30px,50px) scale(0.94); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .orb{ animation: none !important; }
+  }
+
+  /* ---------------------------------------------------------------
+     Card — the main liquid-glass pane
+  --------------------------------------------------------------- */
+  .card{
+    width: 100%;
+    max-width: 640px;
+    background: linear-gradient(165deg, rgba(16,20,28,0.92), rgba(10,13,19,0.88) 45%, rgba(7,9,13,0.92));
+    backdrop-filter: blur(38px) saturate(170%);
+    -webkit-backdrop-filter: blur(38px) saturate(170%);
+    border: 1px solid var(--stroke);
+    border-radius: 32px;
+    padding: 22px 22px 24px;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    box-shadow:
+      0 30px 70px -25px rgba(0,0,0,0.65),
+      inset 0 1px 0 rgba(255,255,255,0.16),
+      inset 0 0 0 1px rgba(255,255,255,0.02);
+  }
+  .card::before{
+    content:"";
+    position:absolute; top:0; left:8%; right:8%; height:1px;
+    background: linear-gradient(90deg, transparent, var(--sheen), transparent);
+    background-size: 240% 100%;
+    animation: shimmer 6s ease-in-out infinite;
+    opacity: 0.55;
+  }
+  @keyframes shimmer{ 0%,100%{background-position:220% 0;} 50%{background-position:-20% 0;} }
+
+  /* -------- Connection status pill -------- */
+  .conn-status{
+    display:flex; align-items:center; gap: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid var(--stroke-soft);
+    border-radius: 999px;
+    margin-bottom: 14px;
+    width: fit-content;
+  }
+  .conn-dot{ width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; }
+  .conn-dot.connecting{ background: var(--sell); box-shadow: 0 0 8px 2px var(--sell-glow); animation: dotpulse 1s infinite; }
+  .conn-dot.connected{ background: var(--buy); box-shadow: 0 0 8px 2px var(--buy-glow); }
+  @keyframes dotpulse{ 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  /* connected-coin count pill, sits next to the conn-status pill */
+  .conn-status-row{ display:flex; flex-wrap:wrap; align-items:center; gap: 8px; margin-bottom: 14px; }
+  .conn-status-row .conn-status{ margin-bottom: 0; }
+  .conn-count-pill{
+    display:flex; align-items:center; gap: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--stroke-soft);
+    border-radius: 999px;
+    width: fit-content;
+    transition: border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
+  }
+  .conn-count-dot{
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink:0;
+    background: var(--text-faint);
+  }
+  .conn-count-pill.all-ready{
+    border-color: rgba(50,230,168,0.5);
+    background: var(--buy-dim);
+    color: var(--buy);
+  }
+  .conn-count-pill.all-ready .conn-count-dot{
+    background: var(--buy);
+    box-shadow: 0 0 8px 2px var(--buy-glow);
+    animation: dotpulse 1.4s infinite;
+  }
+
+  /* per-box feed-connection row — gray/dark until Binance data for that
+     symbol actually arrives, then flips to a glowing green "ready" state */
+  .feed-row{
+    display:flex; align-items:center; gap: 6px;
+    margin-bottom: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-faint);
+  }
+  .feed-dot{
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink:0;
+    background: #3a4150;
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.4);
+    transition: all 0.3s ease;
+  }
+  .feed-row.connected{ color: var(--buy); }
+  .feed-row.connected .feed-dot{
+    background: radial-gradient(circle at 35% 30%, #a9ffe2, var(--buy) 70%);
+    box-shadow: 0 0 7px 1.5px var(--buy-glow);
+    animation: dotpulse 1.4s infinite;
+  }
+
+  .header{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom: 16px;
+    gap: 10px;
+  }
+  .header h1{
+    font-size: 17px; font-weight:800; letter-spacing:-0.02em;
+    background: linear-gradient(90deg, #ffffff, #b9c6e0 70%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .header .clock{ font-size: 10px; color: var(--text-faint); text-align:right; white-space:nowrap; }
+
+  /* -------- Top warning marquee -------- */
+  .top-warn{
+    margin-bottom: 18px;
+    border: 1px solid var(--stroke-soft);
+    border-radius: 16px;
+    background: rgba(255,194,102,0.05);
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 10px 0;
+  }
+  .top-warn .warn-marquee-track span{
+    color: var(--amber);
+    font-weight: 600;
+  }
+
+  /* -------- Symbol grid -------- */
+  .symbol-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .sym-box{
+    cursor: pointer;
+    background: rgba(16,20,28,0.72);
+    border: 1.5px solid var(--stroke-soft);
+    border-radius: 20px;
+    padding: 13px 12px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease, background 0.3s ease;
+  }
+  .sym-box:hover{ border-color: rgba(255,255,255,0.32); transform: translateY(-2px); background: rgba(22,27,37,0.85); }
+  .sym-box.buy{ border-color: rgba(50,230,168,0.75); box-shadow: 0 0 22px -8px var(--buy-glow); background: rgba(50,230,168,0.14); }
+  .sym-box.sell{ border-color: rgba(255,107,133,0.75); box-shadow: 0 0 22px -8px var(--sell-glow); background: rgba(255,107,133,0.14); }
+
+  /* tile-top: icon | name | lamp — extra gap + reserved right-side room
+     so the lamp's glow (box-shadow blur) never overlaps the "/USDT" text */
+  .tile-top{ display:flex; align-items:center; gap: 12px; margin-bottom: 9px; }
+  .tile-top .sym-icon{
+    width: 34px; height: 34px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .tile-top .sym-icon svg{ width: 20px; height: 20px; }
+  .tile-name{
+    flex:1; min-width:0; font-size: 13.5px; font-weight: 700;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    padding-right: 4px;
+  }
+
+  .tile-lamp{
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    margin-left: 2px;
+    background: radial-gradient(circle at 35% 30%, #454f5f, #1a1d23 75%);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
+  }
+  .tile-lamp.buy{ background: radial-gradient(circle at 35% 30%, #a9ffe2, var(--buy) 70%); box-shadow: 0 0 9px 2px var(--buy-glow); animation: dotpulse 1.2s infinite; }
+  .tile-lamp.sell{ background: radial-gradient(circle at 35% 30%, #ffc2cd, var(--sell) 70%); box-shadow: 0 0 9px 2px var(--sell-glow); animation: dotpulse 1.2s infinite; }
+
+  .tile-price{ font-size: 11.5px; font-weight: 600; color: var(--text-dim); margin-bottom: 10px; }
+  .tile-price.up{ color: var(--buy); }
+  .tile-price.down{ color: var(--sell); }
+
+  .sym-phase-track{ height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+  .sym-phase-fill{ height:100%; width:100%; background: var(--buy); border-radius:3px; transition: width 0.1s linear, background 0.3s ease; }
+  .sym-phase-fill.result{ background: var(--text-faint); }
+  .sym-phase-fill.locking{ background: var(--amber); }
+
+  /* status: bigger main line (BUY/SELL X/4), countdown text on its own
+     line underneath — no more inline squeeze */
+  .tile-status{
+    margin-top: 9px;
+    text-align: center;
+  }
+  .tile-status .main{
+    display:block;
+    font-size: 14.5px;
+    font-weight: 800;
+    color: var(--text-dim);
+  }
+  .tile-status.buy .main{ color: var(--buy); }
+  .tile-status.sell .main{ color: var(--sell); }
+  .tile-status .cd{
+    display:block;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--amber);
+    opacity: 1;
+  }
+  .tile-status .cd.result{
+    color: var(--sell);
+  }
+
+  .footnote{
+    margin-top: 4px;
+    margin-bottom: 4px;
+    font-size: 9.5px;
+    line-height:1.5;
+    color: var(--text-faint);
+    text-align:center;
+    opacity: 0.85;
+  }
+
+  /* -------- Support / Donate section -------- */
+  .support-section{
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--stroke-soft);
+  }
+  .support-head{ margin-bottom: 12px; }
+  .support-head h2{ font-size: 12px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color: var(--text-dim); }
+
+  .support-pay{
+    background: rgba(255,255,255,0.045);
+    border: 1px solid var(--stroke-soft);
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .pay-row{ display:flex; justify-content:space-between; align-items:center; font-size: 12.5px; gap: 8px; }
+  .pay-row + .pay-row{ margin-top: 9px; }
+  .pay-row .k{ color: var(--text-dim); flex-shrink:0; }
+  .pay-row .v{ font-weight: 700; text-align:right; word-break: break-all; }
+
+  .acc-number-row{
+    display:flex; align-items:center; gap: 8px;
+    margin-top: 6px;
+  }
+  .acc-number-row .v{
+    flex: 1; min-width: 0;
+    white-space: nowrap;
+    overflow-x: auto;
+    font-weight: 700;
+    font-size: 12.5px;
+    text-align: left;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .acc-number-row .v::-webkit-scrollbar{ display:none; }
+  .pay-copy{
+    background: rgba(255,255,255,0.08);
+    border:1px solid var(--stroke-soft); color:var(--text-dim);
+    border-radius: 999px; padding:5px 12px; font-size:10.5px; cursor:pointer; flex-shrink:0;
+    font-family:'Inter', sans-serif; font-weight:700;
+    transition: all 0.2s ease;
+  }
+  .pay-copy:hover{ color: var(--bg-deep); border-color: var(--amber); background: var(--amber); }
+  .pay-note{ font-size: 10.5px; color: var(--text-faint); margin-top: 12px; line-height: 1.6; }
+
+  .dev-credit{
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--stroke-soft);
+    font-size: 10.5px;
+    line-height: 1.7;
+    color: var(--text-faint);
+    text-align: center;
+  }
+  .dev-credit b{ color: var(--text); }
+  .dev-credit a{ color: var(--azure); text-decoration: none; }
+  .dev-credit a:hover{ text-decoration: underline; }
+
+  /* -------- Detail modal -------- */
+  .modal-overlay{
+    position: fixed; inset: 0;
+    background: rgba(3,4,7,0.55);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    display:flex; align-items:center; justify-content:center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+    z-index: 1000;
+  }
+  .modal-overlay.show{ opacity: 1; pointer-events: auto; }
+
+  .modal-aura{
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 420px; height: 420px;
+    transform: translate(-50%,-50%) scale(0.85);
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.4;
+    background: radial-gradient(circle, var(--amber), transparent 70%);
+    transition: background 0.5s ease, opacity 0.5s ease, transform 0.35s ease;
+    pointer-events: none;
+  }
+  .modal-aura.buy{ background: radial-gradient(circle, var(--buy), transparent 70%); opacity: 0.45; }
+  .modal-aura.sell{ background: radial-gradient(circle, var(--sell), transparent 70%); opacity: 0.45; }
+  .modal-overlay.show .modal-aura{ transform: translate(-50%,-50%) scale(1); }
+
+  .modal-card{
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    background: linear-gradient(165deg, rgba(18,22,30,0.95), rgba(10,13,19,0.92) 55%, rgba(7,9,13,0.95));
+    backdrop-filter: blur(34px) saturate(170%);
+    -webkit-backdrop-filter: blur(34px) saturate(170%);
+    border: 1px solid var(--stroke);
+    border-radius: 28px;
+    padding: 46px 20px 20px;
+    box-shadow: 0 40px 90px -20px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.16);
+    transform: scale(0.92) translateY(8px);
+    opacity: 0;
+    transition: transform 0.28s cubic-bezier(.2,1,.3,1), opacity 0.25s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .modal-overlay.show .modal-card{ transform: scale(1) translateY(0); opacity: 1; }
+  .modal-card.buy{ border-color: rgba(50,230,168,0.55); box-shadow: 0 0 50px -10px var(--buy-glow); }
+  .modal-card.sell{ border-color: rgba(255,107,133,0.55); box-shadow: 0 0 50px -10px var(--sell-glow); }
+
+  .modal-close{
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--stroke-soft);
+    background: rgba(255,255,255,0.06);
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition: all 0.2s ease;
+    z-index: 5;
+  }
+  .modal-close:hover:not(:disabled){ background: var(--sell-dim); color: var(--sell); border-color: var(--sell); }
+  .modal-close:disabled{ opacity: 0.4; cursor: not-allowed; }
+
+  .modal-top{ display:flex; align-items:center; gap: 12px; margin-bottom: 14px; }
+  .modal-top .sym-icon{
+    width: 50px; height: 50px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .modal-top .sym-icon svg{ width: 29px; height: 29px; }
+  .modal-id-block{ flex:1; min-width:0; }
+  .modal-name-row{ display:flex; align-items:center; gap: 12px; }
+  .modal-name{
+    font-size: 18px; font-weight: 800;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .modal-lamp{
+    width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0;
+    margin-left: 2px;
+    background: radial-gradient(circle at 35% 30%, #454f5f, #1a1d23 75%);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
+  }
+  .modal-lamp.buy{ background: radial-gradient(circle at 35% 30%, #a9ffe2, var(--buy) 70%); box-shadow: 0 0 10px 2px var(--buy-glow); animation: dotpulse 1.2s infinite; }
+  .modal-lamp.sell{ background: radial-gradient(circle at 35% 30%, #ffc2cd, var(--sell) 70%); box-shadow: 0 0 10px 2px var(--sell-glow); animation: dotpulse 1.2s infinite; }
+  .modal-price{ font-size: 15px; font-weight: 600; margin-top: 2px; }
+  .modal-price.up{ color: var(--buy); }
+  .modal-price.down{ color: var(--sell); }
+
+  .modal-phase-track{ height: 9px; border-radius: 5px; background: rgba(255,255,255,0.08); overflow: hidden; }
+  .modal-phase-fill{ height:100%; width:100%; background: var(--buy); border-radius:5px; transition: width 0.1s linear, background 0.3s ease; }
+  .modal-phase-fill.result{ background: var(--text-faint); }
+  .modal-phase-fill.locking{ background: var(--amber); }
+  .modal-phase-info{ display:flex; justify-content:space-between; margin-top: 7px; font-size: 11px; color: var(--text-dim); }
+  .modal-phase-info .cd{ font-family:'JetBrains Mono', monospace; font-weight:700; color: var(--amber); font-size: 14px; }
+
+  .modal-detail-grid{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .modal-detail{ background: rgba(255,255,255,0.055); border: 1px solid var(--stroke-soft); border-radius: 14px; padding: 10px 10px; }
+  .modal-detail .k{ font-size: 9.5px; color: var(--text-faint); letter-spacing: 0.06em; text-transform: uppercase; }
+  .modal-detail .v{ font-family:'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; margin-top: 4px; }
+  .modal-detail .v.buy{ color: var(--buy); }
+  .modal-detail .v.sell{ color: var(--sell); }
+  .modal-detail .v.neutral{ color: var(--amber); }
+
+  .modal-lean-line{ margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--stroke-soft); font-size: 13px; font-weight: 700; color: var(--text-dim); }
+  .modal-lean-line.buy{ color: var(--buy); }
+  .modal-lean-line.sell{ color: var(--sell); }
+
+  /* -------- Startup disclaimer modal (scrolling marquee) -------- */
+  .warn-overlay{
+    position: fixed; inset: 0;
+    background: rgba(3,4,7,0.6);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    display:flex; align-items:center; justify-content:center;
+    padding: 20px;
+    z-index: 2000;
+  }
+  .warn-card{
+    width: 100%; max-width: 420px;
+    background: linear-gradient(165deg, rgba(20,18,14,0.95), rgba(12,11,10,0.92) 55%, rgba(7,9,13,0.95));
+    backdrop-filter: blur(34px) saturate(170%);
+    -webkit-backdrop-filter: blur(34px) saturate(170%);
+    border: 1px solid rgba(255,194,102,0.45);
+    border-radius: 26px;
+    padding: 24px 20px 20px;
+    box-shadow: 0 0 60px -10px var(--amber-glow), 0 40px 90px -20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.16);
+    position: relative;
+  }
+  .warn-card h2{ font-size: 15px; font-weight: 800; margin-bottom: 12px; color: var(--amber); }
+  .warn-card p{ font-size: 12.5px; line-height: 1.7; color: var(--text); margin-bottom: 10px; }
+  .warn-marquee-wrap{
+    overflow: hidden;
+    white-space: nowrap;
+    border-top: 1px solid var(--stroke-soft);
+    border-bottom: 1px solid var(--stroke-soft);
+    padding: 12px 0;
+    margin-bottom: 14px;
+  }
+  .warn-marquee-track{
+    display: inline-block;
+    animation: marquee 58s linear infinite;
+  }
+  .warn-marquee-track span{
+    display: inline-block;
+    padding-right: 50px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  @keyframes marquee{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(-50%); }
+  }
+  .warn-close{
+    margin-top: 10px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 999px;
+    border: 1px solid var(--stroke-soft);
+    background: rgba(255,255,255,0.06);
+    color: var(--text-dim);
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: not-allowed;
+    transition: all 0.2s ease;
+  }
+  .warn-close.ready{ cursor: pointer; background: var(--amber); color: #241a04; border-color: var(--amber); box-shadow: 0 0 24px -6px var(--amber-glow); }
+
+  @media (max-width: 420px){
+    .card{ border-radius: 26px; padding: 18px 16px 20px; }
+    .orb{ opacity: 0.32; filter: blur(70px); }
+    .orb-3{ opacity: 0.16; }
+  }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="card">
+  <div class="conn-status-row">
+    <div class="conn-status">
+      <span class="conn-dot connecting" id="connDot"></span>
+      <span id="connText">กำลังเชื่อมต่อกราฟ รอสักครู่...</span>
+    </div>
+    <div class="conn-count-pill" id="connCountPill">
+      <span class="conn-count-dot" id="connCountDot"></span>
+      <span id="connCountText" class="mono">เชื่อมต่อแล้ว 0/5</span>
+    </div>
+  </div>
+
+  <div class="header">
+    <h1>Multi-Coin Order Flow</h1>
+    <div class="clock mono" id="clockRow">-- --- ---- · --:--:--</div>
+  </div>
+
+  <div class="top-warn">
+    <div class="warn-marquee-track">
+      <span>⚠️ นี่คือเครื่องมือช่วยวิเคราะห์เท่านั้น ไม่ใช่คำแนะนำการลงทุน ไม่รับประกันผลกำไรหรือความแม่นยำ &nbsp;•&nbsp; ⚠️ ตลาดจริงอาจเปลี่ยนแปลงได้ตลอดเวลาจากข่าวหรือเหตุการณ์ที่คาดไม่ถึง &nbsp;•&nbsp; ⚠️ โปรดใช้วิจารณญาณและรับผิดชอบความเสี่ยงด้วยตัวเองทุกครั้ง &nbsp;•&nbsp;</span>
+      <span>⚠️ นี่คือเครื่องมือช่วยวิเคราะห์เท่านั้น ไม่ใช่คำแนะนำการลงทุน ไม่รับประกันผลกำไรหรือความแม่นยำ &nbsp;•&nbsp; ⚠️ ตลาดจริงอาจเปลี่ยนแปลงได้ตลอดเวลาจากข่าวหรือเหตุการณ์ที่คาดไม่ถึง &nbsp;•&nbsp; ⚠️ โปรดใช้วิจารณญาณและรับผิดชอบความเสี่ยงด้วยตัวเองทุกครั้ง &nbsp;•&nbsp;</span>
+    </div>
+  </div>
+
+  <div class="symbol-grid" id="symbolGrid"></div>
+
+  <div class="footnote">
+    ข้อมูลราคาจริงจาก Binance · ล็อกสัญญาณเมื่ออย่างน้อย 3/4 อินดิเคเตอร์เห็นตรงกัน (EMA/RSI/แท่งเทียน/MACD histogram) ไม่ใช่คำแนะนำการลงทุน ไม่การันตีวินเรท
+  </div>
+
+  <div class="support-section">
+    <div class="support-head">
+      <h2>สนับสนุนผู้พัฒนา</h2>
+    </div>
+
+    <div class="support-pay">
+      <div class="pay-row">
+        <span class="k">ธนาคาร</span>
+        <span class="v">BCEL (ธ. การค้าต่างประเทศลาว)</span>
+      </div>
+      <div class="pay-row">
+        <span class="k">ชื่อบัญชี</span>
+        <span class="v" id="accHolder">—</span>
+      </div>
+      <div class="pay-row">
+        <span class="k">เลขบัญชี (LAK)</span>
+      </div>
+      <div class="acc-number-row">
+        <span class="v mono" id="accNumber">—</span>
+        <button class="pay-copy" id="accCopyBtn" onclick="copyAccountNumber()">คัดลอก</button>
+      </div>
+      <div class="pay-note">
+        โอนเข้าบัญชีเลขด้านบน (สกุลเงินกีบ / LAK) ได้โดยตรง ขอบพระคุณสำหรับการสนับสนุนครับ/ค่ะ 🙏
+      </div>
+    </div>
+
+    <div class="dev-credit">
+      สร้างและพัฒนาโดย <b>Jerry Souknilanh</b>
+      <br><br>
+      <b>ช่องทางติดต่อ</b><br>
+      Facebook: Jerry Souknilanh · IG: <a href="https://instagram.com/jerry_snl" target="_blank" rel="noopener">@jerry_snl</a> · TikTok: <a href="https://tiktok.com/@jerry_kub" target="_blank" rel="noopener">@jerry_kub</a><br>
+      WhatsApp: <a href="tel:02091121476">02091121476</a>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal-aura" id="modalAura"></div>
+  <div class="modal-card" id="modalCard">
+    <button class="modal-close" id="modalClose" onclick="closeModal()">✕</button>
+
+    <div class="modal-top">
+      <div class="sym-icon" id="modalIcon"></div>
+      <div class="modal-id-block">
+        <div class="modal-name-row">
+          <span class="modal-name" id="modalName">--</span>
+          <span class="modal-lamp" id="modalLamp"></span>
+        </div>
+        <div class="modal-price mono" id="modalPrice">--</div>
+      </div>
+    </div>
+
+    <div class="modal-phase-track"><div class="modal-phase-fill" id="modalPhaseFill"></div></div>
+    <div class="modal-phase-info">
+      <span id="modalPhaseName">ENTRY WINDOW</span>
+      <span class="cd" id="modalCd">–</span>
+    </div>
+
+    <div class="modal-detail-grid">
+      <div class="modal-detail">
+        <div class="k">RSI(14)</div>
+        <div class="v neutral mono" id="modalRsi">--</div>
+      </div>
+      <div class="modal-detail">
+        <div class="k">EMA 5/13</div>
+        <div class="v mono" id="modalEma">--</div>
+      </div>
+      <div class="modal-detail">
+        <div class="k">Confluence</div>
+        <div class="v mono" id="modalConf">0/4</div>
+      </div>
+    </div>
+
+    <div class="modal-lean-line" id="modalLean">รอข้อมูลจริง</div>
+  </div>
+</div>
+
+<div class="warn-overlay" id="warnOverlay">
+  <div class="warn-card">
+    <h2>⚠️ คำเตือนก่อนใช้งาน Bot ช่วยวิเคราะห์ตลาด</h2>
+    <p>📊 โปรดทราบว่า Bot เป็นเพียงเครื่องมือช่วยวิเคราะห์ข้อมูลและสนับสนุนการตัดสินใจเท่านั้น ไม่สามารถรับประกันผลกำไรหรือทำนายทิศทางตลาดได้อย่างแม่นยำ 100%</p>
+    <p>📈 ตลาดการเงินมีความผันผวนอยู่เสมอ ราคาสามารถเปลี่ยนแปลงได้จากข่าวสาร เหตุการณ์สำคัญ และปัจจัยอื่น ๆ ที่ Bot อาจไม่สามารถประเมินได้ทั้งหมด</p>
+    <p>🧠 ผู้ใช้งานควรศึกษาข้อมูล ทำความเข้าใจความเสี่ยง และใช้วิจารณญาณในการตัดสินใจทุกครั้ง ไม่ควรลงทุนด้วยเงินที่ไม่สามารถยอมรับการขาดทุนได้</p>
+    <p>⚖️ การใช้งาน Bot ถือเป็นความรับผิดชอบของผู้ใช้งานเอง ผู้พัฒนาและผู้ให้บริการจะไม่รับผิดชอบต่อความเสียหายหรือผลขาดทุนที่เกิดขึ้นจากการนำข้อมูลหรือสัญญาณของ Bot ไปใช้ในการลงทุนหรือการเทรด</p>
+    <button class="warn-close" id="warnClose" disabled onclick="closeWarning()">รอ 5 วินาที...</button>
+  </div>
+</div>
+
+<script>
+// =================================================================
+// Startup disclaimer — must wait 5s before the close button enables
+// =================================================================
+(function(){
+  let secondsLeft = 5;
+  const btn = document.getElementById('warnClose');
+  const timer = setInterval(() => {
+    secondsLeft--;
+    if(secondsLeft <= 0){
+      clearInterval(timer);
+      btn.disabled = false;
+      btn.className = 'warn-close ready';
+      btn.textContent = 'รับทราบ เข้าใช้งาน';
+    } else {
+      btn.textContent = `รอ ${secondsLeft} วินาที...`;
+    }
+  }, 1000);
+})();
+function closeWarning(){
+  document.getElementById('warnOverlay').style.display = 'none';
+}
+
+// =================================================================
+// CONFIG — per-symbol Binance ticker + XRTrade phase boundary second
+// (the real-clock second at which that symbol's 30s entry window
+// begins — confirmed against the values given for each coin)
+// =================================================================
+const SYMBOLS = [
+  { id:'BTC', pair:'BTC/USDT', binance:'BTCUSDT', boundary:6,  bg:'#2a1c08',
+    icon:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#f7931a"/><path fill="#fff" d="M22.3 14.2c.3-2-1.2-3.1-3.3-3.8l.7-2.7-1.7-.4-.6 2.6c-.5-.1-.9-.2-1.4-.3l.7-2.6-1.7-.4-.7 2.7c-.4-.1-.7-.2-1.1-.3v0l-2.3-.6-.4 1.8s1.2.3 1.2.3c.7.2.8.6.8 1l-.8 3.1c0 0 .1 0 .2.1l-.2 0-1.1 4.3c-.1.2-.3.5-.8.4 0 0-1.2-.3-1.2-.3l-.8 1.9 2.2.5c.4.1.8.2 1.2.3l-.7 2.7 1.7.4.7-2.7c.5.1.9.2 1.4.3l-.7 2.7 1.7.4.7-2.7c2.9.5 5.1.3 6-2.3.7-2.1 0-3.3-1.5-4.1 1.1-.2 1.9-1 2.1-2.5zm-3.9 5.5c-.5 2.1-4 1-5.1.7l.9-3.7c1.1.3 4.7.8 4.2 3zm.5-5.6c-.5 1.9-3.4.9-4.3.7l.8-3.4c.9.2 4 .6 3.5 2.7z"/></svg>' },
+  { id:'ETH', pair:'ETH/USDT', binance:'ETHUSDT', boundary:11, bg:'#1c1e24',
+    icon:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#292b32"/><g fill="#c9cdd6"><path d="M16 4 L16 13.5 L23.5 17 Z" opacity="0.6"/><path d="M16 4 L8.5 17 L16 13.5 Z"/><path d="M16 15.3 L16 22 L23.5 18.8 Z" opacity="0.6"/><path d="M16 22 L16 15.3 L8.5 18.8 Z"/><path d="M16 21 L16 27.5 L23.5 20.2 Z" opacity="0.3"/><path d="M16 27.5 L16 21 L8.5 20.2 Z" opacity="0.7"/></g></svg>' },
+  { id:'BNB', pair:'BNB/USDT', binance:'BNBUSDT', boundary:32, bg:'#2b2408',
+    icon:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#f0b90b"/><g fill="#fff"><rect x="14" y="6" width="4" height="4" transform="rotate(45 16 8)"/><rect x="9" y="11" width="4" height="4" transform="rotate(45 11 13)"/><rect x="19" y="11" width="4" height="4" transform="rotate(45 21 13)"/><rect x="14" y="14" width="4" height="4" transform="rotate(45 16 16)"/><rect x="4" y="14" width="4" height="4" transform="rotate(45 6 16)"/><rect x="24" y="14" width="4" height="4" transform="rotate(45 26 16)"/><rect x="9" y="17" width="4" height="4" transform="rotate(45 11 19)"/><rect x="19" y="17" width="4" height="4" transform="rotate(45 21 19)"/><rect x="14" y="22" width="4" height="4" transform="rotate(45 16 24)"/></g></svg>' },
+  { id:'SOL', pair:'SOL/USDT', binance:'SOLUSDT', boundary:36, bg:'#12161c',
+    icon:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#12161c"/><defs><linearGradient id="solg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9945FF"/><stop offset="100%" stop-color="#14F195"/></linearGradient></defs><g fill="url(#solg)"><path d="M9 20.5 L11.2 18.3 C11.4 18.1 11.7 18 12 18 L23 18 C23.5 18 23.7 18.6 23.4 18.9 L21.2 21.1 C21 21.3 20.7 21.4 20.4 21.4 L9.4 21.4 C8.9 21.4 8.7 20.8 9 20.5 Z"/><path d="M9 11.4 L11.2 9.2 C11.4 9 11.7 8.9 12 8.9 L23 8.9 C23.5 8.9 23.7 9.5 23.4 9.8 L21.2 12 C21 12.2 20.7 12.3 20.4 12.3 L9.4 12.3 C8.9 12.3 8.7 11.7 9 11.4 Z"/><path d="M21.2 15.9 L19 13.7 C18.8 13.5 18.5 13.4 18.2 13.4 L7.2 13.4 C6.7 13.4 6.5 14 6.8 14.3 L9 16.5 C9.2 16.7 9.5 16.8 9.8 16.8 L20.8 16.8 C21.3 16.8 21.5 16.2 21.2 15.9 Z"/></g></svg>' },
+  { id:'SUI', pair:'SUI/USDT', binance:'SUIUSDT', boundary:41, bg:'#0e1f33',
+    icon:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#4da2ff"/><path fill="#fff" d="M16 7c-3.2 4-5.5 7.4-5.5 10.8 0 3.6 2.6 6.2 5.5 6.2s5.5-2.6 5.5-6.2C21.5 14.4 19.2 11 16 7zm0 14.4c-2 0-3.2-1.6-3.2-3.6 0-1.4.9-3 2.1-4.7.3.5.5 1 .5 1.6 0 1.1-.8 1.7-.8 2.9 0 1.1.8 2 1.8 2 .3 0 .5-.2.5-.5s-.2-.5-.5-.5c-.5 0-.8-.4-.8-1 0-.8.8-1.3.8-2.5 0-.9-.4-1.7-.9-2.5 1.1 1.5 2.7 3.5 2.7 5.2 0 2-1.2 3.6-1.2 3.6z"/></svg>' },
+];
+
+const EMA_FAST = 5, EMA_SLOW = 13, RSI_PERIOD = 14, CONFIRM = 2, SIGNAL_PERIOD = 5;
+const CONFLUENCE_MIN = 3; // out of 4 — stricter, fewer but more-agreed-upon signals
+const ENTRY_S = 30, RESULT_S = 30, LOCK_AT = 10;
+const UTC_OFFSET_HOURS = 7;
+const MONTHS_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const WEEKDAYS_TH = ['วันอาทิตย์','วันจันทร์','วันอังคาร','วันพุธ','วันพฤหัสบดี','วันศุกร์','วันเสาร์'];
+
+// -----------------------------------------------------------------
+// Donate / payment info (BCEL One, LAK) — display only, nothing here
+// is submitted, stored, or synced anywhere.
+// -----------------------------------------------------------------
+const ACCOUNT_HOLDER = 'KHOUNTHAVISAP SOUKNILAN MR';
+const ACCOUNT_NUMBER = '020-12-00-01565986-001';
+
+document.getElementById('accHolder').textContent = ACCOUNT_HOLDER;
+document.getElementById('accNumber').textContent = ACCOUNT_NUMBER;
+
+function copyAccountNumber(){
+  const text = ACCOUNT_NUMBER.replace(/-/g,'');
+
+  function showCopied(){
+    const btn = document.getElementById('accCopyBtn');
+    if(!btn) return;
+    const original = btn.textContent;
+    btn.textContent = 'คัดลอกแล้ว ✓';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  }
+
+  function fallbackCopy(){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try{
+      document.execCommand('copy');
+      showCopied();
+    } catch(err){
+      alert('คัดลอกอัตโนมัติไม่ได้ กรุณาคัดลอกเลขบัญชีด้วยตนเอง: ' + text);
+    }
+    document.body.removeChild(ta);
+  }
+
+  // navigator.clipboard needs a secure context (https/localhost) — a
+  // file:// page opened by double-click doesn't qualify, so it silently
+  // fails there. Fall back to the older execCommand method in that case.
+  if(navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(showCopied).catch(fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
+}
+
+// -----------------------------------------------------------------
+// Indicator math
+// -----------------------------------------------------------------
+function ema(vals, period){
+  if(vals.length < period) return null;
+  const k = 2/(period+1);
+  let e = vals[0];
+  for(let i=1;i<vals.length;i++) e = vals[i]*k + e*(1-k);
+  return e;
+}
+function rsi(vals, period){
+  if(vals.length < period+1) return null;
+  let gains=0, losses=0;
+  for(let i=vals.length-period;i<vals.length;i++){
+    const ch = vals[i]-vals[i-1];
+    if(ch>0) gains+=ch; else losses+=-ch;
+  }
+  const ag = gains/period, al = losses/period;
+  if(al===0) return 100;
+  const rs = ag/al;
+  return 100 - (100/(1+rs));
+}
+function getSyncedTime(){
+  return new Date(Date.now() + UTC_OFFSET_HOURS * 3600000);
+}
+
+// -----------------------------------------------------------------
+// Per-symbol state — everything lives only in memory for this tab;
+// nothing is persisted or shared, so a refresh starts clean.
+// -----------------------------------------------------------------
+function makeState(cfg){
+  return {
+    cfg,
+    closes: [], candles: [], emaDiffHistory: [],
+    lastPrice: null,
+    rsiVal: null, emaTrendUp: null,
+    currentDirection: null, currentConfluence: 0,
+    locked: false, lockedDirection: null, lockedConfluence: null,
+    feedOk: false,
+  };
+}
+const states = {};
+SYMBOLS.forEach(cfg => states[cfg.binance] = makeState(cfg));
+
+let openSymbol = null;
+let feedConnected = false;
+
+// -----------------------------------------------------------------
+// Build the compact symbol tiles
+// -----------------------------------------------------------------
+function buildGrid(){
+  const grid = document.getElementById('symbolGrid');
+  grid.innerHTML = SYMBOLS.map(cfg => `
+    <div class="sym-box" id="row-${cfg.binance}" onclick="openModal('${cfg.binance}')">
+      <div class="tile-top">
+        <div class="sym-icon" style="background:${cfg.bg};">${cfg.icon}</div>
+        <div class="tile-name">${cfg.pair}</div>
+        <div class="tile-lamp" id="lamp-${cfg.binance}"></div>
+      </div>
+      <div class="feed-row" id="feed-${cfg.binance}">
+        <span class="feed-dot"></span>
+        <span class="feed-text">กำลังเชื่อมต่อ...</span>
+      </div>
+      <div class="tile-price mono" id="price-${cfg.binance}">--</div>
+      <div class="sym-phase-track"><div class="sym-phase-fill" id="phase-${cfg.binance}"></div></div>
+      <div class="tile-status mono" id="status-${cfg.binance}"><span class="main">--</span></div>
+    </div>
+  `).join('');
+}
+buildGrid();
+
+// -----------------------------------------------------------------
+// Evaluate indicators for one symbol → confluence vote
+// -----------------------------------------------------------------
+function evaluateSymbol(state){
+  const closes = state.closes;
+  const need = Math.max(EMA_SLOW, RSI_PERIOD+1) + CONFIRM;
+  if(closes.length < need) return;
+
+  const fNow = ema(closes.slice(-EMA_FAST), EMA_FAST);
+  const sNow = ema(closes.slice(-EMA_SLOW), EMA_SLOW);
+  const r = rsi(closes.slice(-(RSI_PERIOD+1)), RSI_PERIOD);
+  if([fNow,sNow,r].some(v => v === null)) return;
+
+  const diffNow = fNow - sNow;
+  state.emaDiffHistory.push(diffNow);
+  if(state.emaDiffHistory.length > 50) state.emaDiffHistory.shift();
+  const signalLine = ema(state.emaDiffHistory.slice(-SIGNAL_PERIOD), SIGNAL_PERIOD);
+  const histogram = signalLine !== null ? diffNow - signalLine : null;
+
+  const recent = state.candles.slice(-CONFIRM);
+  const allGreen = recent.length === CONFIRM && recent.every(c => c.close > c.open);
+  const allRed = recent.length === CONFIRM && recent.every(c => c.close < c.open);
+
+  let bullish = 0, bearish = 0;
+  if(fNow > sNow) bullish++; else bearish++;
+  if(r > 55) bullish++; else if(r < 45) bearish++;
+  if(allGreen) bullish++; else if(allRed) bearish++;
+  if(histogram !== null){ if(histogram > 0) bullish++; else if(histogram < 0) bearish++; }
+
+  state.rsiVal = r;
+  state.emaTrendUp = fNow > sNow;
+  state.currentConfluence = Math.max(bullish, bearish);
+  state.currentDirection = bullish > bearish ? 'buy' : bearish > bullish ? 'sell' : null;
+
+  if(openSymbol === state.cfg.binance){
+    const rsiEl = document.getElementById('modalRsi');
+    const emaEl = document.getElementById('modalEma');
+    rsiEl.textContent = r.toFixed(1);
+    rsiEl.className = 'v mono ' + (r>65?'buy':r<35?'sell':'neutral');
+    emaEl.textContent = fNow > sNow ? 'fast > slow' : 'fast < slow';
+    emaEl.className = 'v mono ' + (fNow>sNow?'buy':'sell');
+  }
+}
+
+// -----------------------------------------------------------------
+// Feed: batched Binance ticker poll for all symbols at once
+// -----------------------------------------------------------------
+async function pollAllPrices(){
+  try{
+    const symbolsParam = encodeURIComponent(JSON.stringify(SYMBOLS.map(s => s.binance)));
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbols=${symbolsParam}`);
+    if(!res.ok) throw new Error('bad response');
+    const data = await res.json();
+
+    data.forEach(row => {
+      const state = states[row.symbol];
+      if(!state) return;
+      const close = parseFloat(row.price);
+      if(!close || isNaN(close)) return;
+
+      const open = state.lastPrice !== null ? state.lastPrice : close;
+      const candle = { open, high: Math.max(open,close), low: Math.min(open,close), close };
+      state.candles.push(candle);
+      if(state.candles.length > 100) state.candles.shift();
+      state.closes.push(close);
+      if(state.closes.length > 100) state.closes.shift();
+      state.lastPrice = close;
+      state.feedOk = true;
+
+      const priceEl = document.getElementById('price-' + row.symbol);
+      if(priceEl){
+        priceEl.textContent = close.toLocaleString(undefined, {maximumFractionDigits: close < 10 ? 4 : 2});
+        priceEl.className = 'tile-price mono ' + (close >= open ? 'up' : 'down');
+      }
+      if(openSymbol === row.symbol){
+        const mp = document.getElementById('modalPrice');
+        mp.textContent = close.toLocaleString(undefined, {maximumFractionDigits: close < 10 ? 4 : 2});
+        mp.className = 'modal-price mono ' + (close >= open ? 'up' : 'down');
+      }
+
+      evaluateSymbol(state);
+    });
+
+    feedConnected = true;
+  } catch(err){
+    Object.values(states).forEach(state => { state.feedOk = false; });
+    feedConnected = false;
+  }
+  updateConnStatus();
+  updateFeedIndicators();
+}
+
+// Per-coin "connected" badge + the overall "x/y เชื่อมต่อแล้ว" count pill.
+// A symbol only flips to green once its own Binance ticker data has
+// actually arrived at least once (state.feedOk) — not just when the
+// batched request as a whole succeeded.
+function updateFeedIndicators(){
+  let connectedCount = 0;
+  SYMBOLS.forEach(cfg => {
+    const state = states[cfg.binance];
+    const row = document.getElementById('feed-' + cfg.binance);
+    if(!row) return;
+    const textEl = row.querySelector('.feed-text');
+    if(state.feedOk){
+      connectedCount++;
+      row.classList.add('connected');
+      if(textEl) textEl.textContent = 'พร้อมใช้งาน';
+    } else {
+      row.classList.remove('connected');
+      if(textEl) textEl.textContent = 'กำลังเชื่อมต่อ...';
+    }
+  });
+
+  const countText = document.getElementById('connCountText');
+  if(countText) countText.textContent = `เชื่อมต่อแล้ว ${connectedCount}/${SYMBOLS.length}`;
+
+  const pill = document.getElementById('connCountPill');
+  if(pill){
+    if(connectedCount === SYMBOLS.length) pill.classList.add('all-ready');
+    else pill.classList.remove('all-ready');
+  }
+}
+setInterval(pollAllPrices, 1500);
+pollAllPrices();
+
+function updateConnStatus(){
+  const dot = document.getElementById('connDot');
+  const text = document.getElementById('connText');
+  if(feedConnected){
+    dot.className = 'conn-dot connected';
+    text.textContent = 'เชื่อมต่อกราฟแล้ว (Binance real-time)';
+  } else {
+    dot.className = 'conn-dot connecting';
+    text.textContent = 'กำลังเชื่อมต่อกราฟ รอสักครู่...';
+  }
+}
+
+// -----------------------------------------------------------------
+// Per-symbol phase clock (own boundary second per coin)
+// -----------------------------------------------------------------
+function tickSymbolPhase(state){
+  const cfg = state.cfg;
+  const t = getSyncedTime();
+  const secInMinute = t.getUTCSeconds() + t.getUTCMilliseconds()/1000;
+  const cyclePos = ((secInMinute - cfg.boundary) % 60 + 60) % 60;
+
+  const fill = document.getElementById('phase-' + cfg.binance);
+  const status = document.getElementById('status-' + cfg.binance);
+  const lamp = document.getElementById('lamp-' + cfg.binance);
+  const box = document.getElementById('row-' + cfg.binance);
+
+  const isOpen = openSymbol === cfg.binance;
+  const mFill = isOpen ? document.getElementById('modalPhaseFill') : null;
+  const mName = isOpen ? document.getElementById('modalPhaseName') : null;
+  const mCd = isOpen ? document.getElementById('modalCd') : null;
+  const mLamp = isOpen ? document.getElementById('modalLamp') : null;
+  const mCard = isOpen ? document.getElementById('modalCard') : null;
+  const mLean = isOpen ? document.getElementById('modalLean') : null;
+  const mConf = isOpen ? document.getElementById('modalConf') : null;
+
+  let phase, remaining;
+  if(cyclePos < ENTRY_S){
+    phase = 'entry';
+    remaining = ENTRY_S - cyclePos;
+    const pct = (remaining/ENTRY_S*100) + '%';
+    const lockingNow = remaining <= LOCK_AT;
+    fill.style.width = pct;
+    fill.className = 'sym-phase-fill' + (lockingNow ? ' locking' : '');
+    if(mFill){ mFill.style.width = pct; mFill.className = 'modal-phase-fill' + (lockingNow ? ' locking' : ''); }
+
+    if(lockingNow){
+      // Lock happens once per round in lockSymbolSignal(); everything
+      // displayed here reads the SNAPSHOT (state.lockedConfluence),
+      // never the live-recalculating state.currentConfluence — that's
+      // what stops the "3/4 flickers to 2/4 flickers to 3/4" problem.
+      if(!state.locked) lockSymbolSignal(state);
+      const cdSec = Math.ceil(remaining);
+
+      if(mName) mName.textContent = 'ENTRY · ล็อกสัญญาณแล้ว';
+      if(mCd){ mCd.textContent = cdSec + 's'; mCd.className = 'cd'; }
+
+      if(state.lockedDirection){
+        status.innerHTML = '<span class="main">' + (state.lockedDirection==='buy'?'BUY':'SELL') + ' ' + state.lockedConfluence + '/4</span>' +
+          '<span class="cd">เหลือเวลาเข้าออเดอร์ ' + cdSec + 's</span>';
+        status.className = 'tile-status mono ' + state.lockedDirection;
+        lamp.className = 'tile-lamp ' + state.lockedDirection;
+        box.className = 'sym-box ' + state.lockedDirection;
+        if(mLamp) mLamp.className = 'modal-lamp ' + state.lockedDirection;
+        if(mCard){ mCard.classList.remove('buy','sell'); mCard.classList.add(state.lockedDirection); }
+        if(mLean){
+          mLean.textContent = 'สัญญาณ: ' + (state.lockedDirection==='buy'?'ซื้อ (BUY)':'ขาย (SELL)') + ' · ' + state.lockedConfluence + '/4 · เหลือเวลาเข้าออเดอร์ ' + cdSec + 's';
+          mLean.className = 'modal-lean-line ' + state.lockedDirection;
+        }
+      } else {
+        status.innerHTML = '<span class="main">ไม่มีสัญญาณ</span><span class="cd">เหลือ ' + cdSec + 's</span>';
+        status.className = 'tile-status mono';
+        lamp.className = 'tile-lamp';
+        box.className = 'sym-box';
+        if(mLamp) mLamp.className = 'modal-lamp';
+        if(mCard) mCard.classList.remove('buy','sell');
+        if(mLean){ mLean.textContent = 'ไม่มีสัญญาณชัดเจนรอบนี้ · เหลือเวลา ' + cdSec + 's'; mLean.className = 'modal-lean-line'; }
+      }
+    } else {
+      if(state.locked) state.locked = false;
+      const cdSec = Math.ceil(remaining - LOCK_AT);
+      status.innerHTML = '<span class="main">จะบอกสัญญาณในอีก ' + cdSec + 's</span>';
+      status.className = 'tile-status mono';
+      lamp.className = 'tile-lamp';
+      box.className = 'sym-box';
+      if(mName) mName.textContent = 'ENTRY WINDOW';
+      if(mCd){ mCd.textContent = 'จะบอกสัญญาณในอีก ' + cdSec + 's'; mCd.className = 'cd'; }
+      if(mLamp) mLamp.className = 'modal-lamp';
+      if(mCard) mCard.classList.remove('buy','sell');
+
+      if(!state.feedOk && state.closes.length === 0){
+        if(mLean){ mLean.textContent = 'รอข้อมูลจริง'; mLean.className = 'modal-lean-line'; }
+      } else if(state.currentConfluence >= CONFLUENCE_MIN && state.currentDirection){
+        if(mLean){
+          mLean.textContent = (state.currentDirection === 'buy' ? 'เอียงซื้อ' : 'เอียงขาย') + ' — ' + state.currentConfluence + '/4 (ยังไม่ล็อก)';
+          mLean.className = 'modal-lean-line ' + state.currentDirection;
+        }
+      } else {
+        if(mLean){ mLean.textContent = 'กำลังวิเคราะห์ต่อเนื่อง'; mLean.className = 'modal-lean-line'; }
+      }
+      if(mConf){
+        mConf.textContent = state.currentConfluence + '/4';
+        mConf.className = 'v mono ' + (state.currentDirection === 'buy' ? 'buy' : state.currentDirection === 'sell' ? 'sell' : 'neutral');
+      }
+    }
+  } else {
+    phase = 'result';
+    remaining = ENTRY_S + RESULT_S - cyclePos;
+    const pct = (remaining/RESULT_S*100) + '%';
+    fill.style.width = pct;
+    fill.className = 'sym-phase-fill result';
+    if(mFill){ mFill.style.width = pct; mFill.className = 'modal-phase-fill result'; }
+
+    const dir = state.lockedDirection;
+    const conf = state.lockedConfluence;
+    const cdSec = Math.ceil(remaining);
+    status.innerHTML = (dir ? '<span class="main ' + dir + '">' + (dir==='buy'?'BUY':'SELL') + ' ' + conf + '/4</span>' : '<span class="main">ไม่ได้ล็อกรอบนี้</span>') +
+      '<span class="cd result">รอรอบถัดไปในอีก ' + cdSec + 's</span>';
+    status.className = 'tile-status mono' + (dir ? ' ' + dir : '');
+    lamp.className = 'tile-lamp' + (dir ? ' ' + dir : '');
+    box.className = 'sym-box' + (dir ? ' ' + dir : '');
+
+    if(mName) mName.textContent = 'RESULT WINDOW · รอผล';
+    if(mCd){ mCd.textContent = 'รอรอบถัดไปในอีก ' + cdSec + 's'; mCd.className = 'cd result'; }
+    if(mLamp) mLamp.className = 'modal-lamp' + (dir ? ' ' + dir : '');
+    if(mCard){ mCard.classList.remove('buy','sell'); if(dir) mCard.classList.add(dir); }
+    if(mLean){
+      mLean.textContent = dir
+        ? 'เข้าไป ' + dir.toUpperCase() + ' เมื่อครู่ · สัญญาณ ' + conf + '/4'
+        : 'ไม่ได้ล็อกสัญญาณรอบนี้';
+      mLean.className = 'modal-lean-line' + (dir ? ' ' + dir : '');
+    }
+    if(mConf){
+      mConf.textContent = dir ? (conf + '/4') : '0/4';
+      mConf.className = 'v mono' + (dir ? ' ' + dir : ' neutral');
+    }
+  }
+}
+
+// Locking a signal only updates this symbol's own live state for the
+// current round — nothing is written to any history or storage.
+function lockSymbolSignal(state){
+  state.locked = true;
+  const need = Math.max(EMA_SLOW, RSI_PERIOD+1) + CONFIRM;
+  if(state.closes.length < need || state.currentConfluence < CONFLUENCE_MIN || !state.currentDirection){
+    state.lockedDirection = null;
+    state.lockedConfluence = null;
+    return;
+  }
+  state.lockedDirection = state.currentDirection;
+  state.lockedConfluence = state.currentConfluence;
+}
+
+function tickAllPhases(){
+  Object.values(states).forEach(tickSymbolPhase);
+
+  const t = getSyncedTime();
+  const pad = n => String(n).padStart(2,'0');
+  const dateStr = `${WEEKDAYS_TH[t.getUTCDay()]} ${t.getUTCDate()} ${MONTHS_TH[t.getUTCMonth()]} ${t.getUTCFullYear()}`;
+  document.getElementById('clockRow').textContent =
+    `${dateStr} · UTC+${UTC_OFFSET_HOURS} ${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}:${pad(t.getUTCSeconds())}`;
+}
+setInterval(tickAllPhases, 100);
+
+// -----------------------------------------------------------------
+// Detail modal
+// -----------------------------------------------------------------
+function openModal(binance){
+  const cfg = SYMBOLS.find(c => c.binance === binance);
+  if(!cfg) return;
+  openSymbol = binance;
+
+  document.getElementById('modalIcon').innerHTML = cfg.icon;
+  document.getElementById('modalIcon').style.background = cfg.bg;
+  document.getElementById('modalName').textContent = cfg.pair;
+
+  const state = states[binance];
+  if(state.rsiVal !== null){
+    const rsiEl = document.getElementById('modalRsi');
+    rsiEl.textContent = state.rsiVal.toFixed(1);
+    rsiEl.className = 'v mono ' + (state.rsiVal>65?'buy':state.rsiVal<35?'sell':'neutral');
+    const emaEl = document.getElementById('modalEma');
+    emaEl.textContent = state.emaTrendUp ? 'fast > slow' : 'fast < slow';
+    emaEl.className = 'v mono ' + (state.emaTrendUp?'buy':'sell');
+  }
+  if(state.lastPrice !== null){
+    const mp = document.getElementById('modalPrice');
+    mp.textContent = state.lastPrice.toLocaleString(undefined, {maximumFractionDigits: state.lastPrice < 10 ? 4 : 2});
+  }
+
+  tickSymbolPhase(state);
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal(){
+  openSymbol = null;
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+</script>
+
+</body>
+</html>
