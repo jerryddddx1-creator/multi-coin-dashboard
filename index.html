@@ -33,7 +33,15 @@
     --azure:         #6fb7ff;
   }
 
-  *{box-sizing:border-box; margin:0; padding:0;}
+  *{
+    box-sizing:border-box; margin:0; padding:0;
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+  }
+  a, button, input, .sym-box, .admin-link, .pay-copy, .warn-close, .modal-close, .donate-form button{
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
   ::selection{ background: rgba(111,183,255,0.3); }
 
   html, body{ height:auto; min-height:100%; }
@@ -246,10 +254,18 @@
     border-radius: 20px;
     padding: 13px 12px;
     transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease, background 0.3s ease;
+    animation: tileIn 0.5s cubic-bezier(.2,1,.3,1) backwards;
   }
   .sym-box:hover{ border-color: rgba(255,255,255,0.32); transform: translateY(-2px); background: rgba(22,27,37,0.85); }
+  .sym-box:active{ transform: scale(0.965); }
   .sym-box.buy{ border-color: rgba(50,230,168,0.75); box-shadow: 0 0 22px -8px var(--buy-glow); background: rgba(50,230,168,0.14); }
   .sym-box.sell{ border-color: rgba(255,107,133,0.75); box-shadow: 0 0 22px -8px var(--sell-glow); background: rgba(255,107,133,0.14); }
+  @keyframes tileIn{ from{ opacity:0; transform: translateY(10px) scale(0.97); } to{ opacity:1; transform: translateY(0) scale(1); } }
+  .sym-box:nth-child(1){ animation-delay: 0.02s; }
+  .sym-box:nth-child(2){ animation-delay: 0.08s; }
+  .sym-box:nth-child(3){ animation-delay: 0.14s; }
+  .sym-box:nth-child(4){ animation-delay: 0.20s; }
+  .sym-box:nth-child(5){ animation-delay: 0.26s; }
 
   /* tile-top: icon | name | lamp — extra gap + reserved right-side room
      so the lamp's glow (box-shadow blur) never overlaps the "/USDT" text */
@@ -484,6 +500,63 @@
   .admin-pending-row .ap-ok{ background:var(--buy-dim); color:var(--buy); border:none; border-radius:9px; padding:6px 10px; font-weight:800; font-size:10.5px; cursor:pointer; }
   .admin-pending-row .ap-no{ background:var(--sell-dim); color:var(--sell); border:none; border-radius:9px; padding:6px 9px; font-weight:800; font-size:10.5px; cursor:pointer; }
   .admin-close-row{ margin-top:16px; text-align:right; }
+
+  .admin-stats{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 16px;
+  }
+  .admin-stat{
+    background: rgba(255,255,255,0.04); border:1px solid var(--stroke-soft); border-radius:12px;
+    padding: 9px 8px; text-align:center;
+  }
+  .admin-stat .as-v{ font-size: 15px; font-weight:800; color: var(--amber); font-family:'JetBrains Mono',monospace; }
+  .admin-stat .as-k{ font-size: 9px; color: var(--text-faint); margin-top:3px; letter-spacing:0.03em; }
+
+  .admin-sub-head{
+    font-size: 10.5px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase;
+    color: var(--text-dim); margin: 16px 0 8px;
+  }
+  .admin-search{
+    width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--stroke-soft); border-radius:12px;
+    padding:9px 11px; color:var(--text); font-family:'Inter',sans-serif; font-size:12px; margin-bottom: 8px;
+  }
+  .admin-search:focus{ outline:none; border-color: var(--amber); }
+
+  .admin-donation-row{
+    display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.04); border:1px solid var(--stroke-soft);
+    border-radius:12px; padding:9px 10px; margin-bottom:8px; font-size:11.5px;
+  }
+  .admin-donation-row .ad-name{ flex:1; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .admin-donation-row .ad-amt{ font-family:'JetBrains Mono',monospace; color: var(--amber); font-weight:700; font-size:11.5px; flex-shrink:0; }
+  .admin-donation-row .ad-edit{ background:rgba(255,255,255,0.08); color:var(--text-dim); border:none; border-radius:9px; padding:6px 9px; font-weight:800; font-size:10.5px; cursor:pointer; flex-shrink:0; }
+  .admin-donation-row .ad-del{ background:var(--sell-dim); color:var(--sell); border:none; border-radius:9px; padding:6px 9px; font-weight:800; font-size:10.5px; cursor:pointer; flex-shrink:0; }
+  .admin-donation-row.editing{ flex-wrap:wrap; }
+  .admin-donation-row .ad-name-input{
+    flex: 1 1 100%; min-width: 100px; background:rgba(255,255,255,0.06); border:1px solid var(--stroke-soft); border-radius:9px;
+    padding:6px 8px; color:var(--text); font-family:'Inter',sans-serif; font-size:11.5px;
+  }
+  .admin-donation-row .ad-amt-input{
+    width:88px; background:rgba(255,255,255,0.06); border:1px solid var(--stroke-soft); border-radius:9px;
+    padding:6px 7px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:11px;
+  }
+  .admin-donation-row .ad-save{ background:var(--buy-dim); color:var(--buy); border:none; border-radius:9px; padding:6px 10px; font-weight:800; font-size:10.5px; cursor:pointer; }
+  .admin-donation-row .ad-cancel{ background:rgba(255,255,255,0.06); color:var(--text-faint); border:none; border-radius:9px; padding:6px 9px; font-weight:800; font-size:10.5px; cursor:pointer; }
+
+  .admin-manual-add{ display:grid; grid-template-columns: 1fr 80px auto; gap:7px; margin-bottom: 8px; }
+  .admin-manual-add input{
+    background:rgba(255,255,255,0.05); border:1px solid var(--stroke-soft); border-radius:10px;
+    padding:9px 10px; color:var(--text); font-family:'Inter',sans-serif; font-size:12px; min-width:0;
+  }
+  .admin-manual-add button{
+    background: var(--amber); color:var(--bg-deep); border:none; border-radius:10px;
+    padding:9px 13px; font-weight:800; font-size:12px; cursor:pointer;
+  }
+
+  .admin-logout-btn{
+    width:100%; margin-top:16px; background:rgba(255,107,133,0.12); color:var(--sell);
+    border:1px solid rgba(255,107,133,0.35); border-radius:12px; padding:10px; font-weight:800;
+    font-size:12px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
 
   /* -------- Streamer-style donation toast -------- */
   .toast-stack{
@@ -819,16 +892,32 @@
 
 <div class="warn-overlay" id="adminOverlay" style="display:none;">
   <div class="admin-card">
-    <h2>Admin — ยืนยันยอดบริจาค</h2>
+    <h2>Admin — จัดการยอดบริจาค</h2>
     <div id="adminLoginBlock">
       <div class="admin-login">
         <input type="password" id="adminPass" placeholder="รหัสผ่าน" onkeydown="if(event.key==='Enter') adminLogin()">
         <button onclick="adminLogin()">เข้าสู่ระบบ</button>
       </div>
-      <div class="admin-err" id="adminErr" style="display:none;">รหัสผ่านไม่ถูกต้อง</div>
+      <div class="admin-err" id="adminErr" style="display:none;">อีเมล/รหัสผ่านไม่ถูกต้อง</div>
     </div>
     <div id="adminPanelBlock" style="display:none;">
+      <div class="admin-stats" id="adminStats"></div>
+
+      <div class="admin-sub-head">รอยืนยัน</div>
       <div id="adminPendingList"></div>
+
+      <div class="admin-sub-head">รายชื่อที่ยืนยันแล้ว</div>
+      <input type="text" id="adminSearch" class="admin-search" placeholder="ค้นหาชื่อผู้บริจาค..." oninput="renderAdminDonations()">
+      <div id="adminDonationsList"></div>
+
+      <div class="admin-sub-head">เพิ่มรายการด้วยมือ</div>
+      <div class="admin-manual-add">
+        <input type="text" id="manualDonorName" placeholder="ชื่อผู้บริจาค" maxlength="24">
+        <input type="number" id="manualDonorAmount" placeholder="จำนวน ₭" min="1">
+        <button onclick="manualAddDonation()">เพิ่ม</button>
+      </div>
+
+      <button class="admin-logout-btn" onclick="adminLogout()">ออกจากระบบแอดมิน</button>
     </div>
     <div class="admin-close-row"><button class="admin-close-btn" onclick="closeAdmin()">ปิด</button></div>
   </div>
@@ -979,7 +1068,7 @@ async function initFirebaseHistorySync(){
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
     const { getDatabase, ref, push, remove, update, query, limitToLast, onValue, onChildAdded } =
       await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
-    const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } =
+    const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, inMemoryPersistence } =
       await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
 
     const app = initializeApp(firebaseConfig);
@@ -994,6 +1083,12 @@ async function initFirebaseHistorySync(){
     fbPendingRef = ref(db, 'pendingDonations');
 
     fbAuth = getAuth(app);
+    // In-memory session only — never persisted to disk/localStorage,
+    // so a page reload (or a fresh visit) always requires the admin
+    // password again. Combined with closeAdmin()'s explicit signOut,
+    // this means "logged in" only ever lasts while the admin panel is
+    // actually open in this tab.
+    await setPersistence(fbAuth, inMemoryPersistence);
     fbSignIn = (password) => signInWithEmailAndPassword(fbAuth, ADMIN_EMAIL, password);
     fbSignOut = () => signOut(fbAuth);
     onAuthStateChanged(fbAuth, (user) => {
@@ -1002,7 +1097,7 @@ async function initFirebaseHistorySync(){
       const panelBlock = document.getElementById('adminPanelBlock');
       if(loginBlock) loginBlock.style.display = adminLoggedIn ? 'none' : 'block';
       if(panelBlock) panelBlock.style.display = adminLoggedIn ? 'block' : 'none';
-      if(adminLoggedIn) renderAdminPending();
+      if(adminLoggedIn){ renderAdminPending(); renderAdminDonations(); }
     });
 
     const recentQuery = query(fbHistoryRef, limitToLast(MAX_HISTORY));
@@ -1023,6 +1118,7 @@ async function initFirebaseHistorySync(){
       snapshot.forEach(child => { rows.push({ id: child.key, ...child.val() }); });
       donations = rows;
       renderDonations();
+      if(adminLoggedIn){ renderAdminStats(); renderAdminDonations(); }
     });
 
     // Streamer-style alert: fires for every confirmed donation, but we
@@ -1129,16 +1225,6 @@ function copyAccountNumber(){
     fallbackCopy();
   }
 }
-
-// -----------------------------------------------------------------
-// Admin password — this is a CLIENT-SIDE check only (anyone who views
-// the page source can read this constant). It stops casual visitors
-// from self-confirming donations, but it is NOT real security against
-// someone who inspects the file. For real protection this whole flow
-// would need a server; here the actual gate against fake amounts is
-// that a real bank transfer still has to be manually checked.
-// -----------------------------------------------------------------
-const ADMIN_PASSWORD = 'Admintnj33hn89g3gvu32ngn3jng5';
 
 // Anti-spam: minimum time between two donation submissions from this
 // browser, regardless of the name typed in.
@@ -1266,28 +1352,59 @@ function showDonationToast(name, amount){
 }
 
 // -----------------------------------------------------------------
-// Admin panel — password gate + confirm/reject each pending donation.
-// Confirm is pre-filled with the amount the donor claimed; the admin
-// can edit it before confirming (after checking the real bank slip)
-// or just reject anything that looks like spam.
+// Admin panel — gated by a real Firebase Auth account (see
+// initFirebaseHistorySync above), not a password in this file.
+// The session is kept in-memory only (see setPersistence with
+// inMemoryPersistence) and explicitly signed out on close, so the
+// admin has to enter the password again every single time they open
+// this panel — even without closing the browser tab.
 // -----------------------------------------------------------------
-function openAdmin(){ document.getElementById('adminOverlay').style.display = 'flex'; }
-function closeAdmin(){ document.getElementById('adminOverlay').style.display = 'none'; }
+function openAdmin(){
+  document.getElementById('adminOverlay').style.display = 'flex';
+  document.getElementById('adminPass').value = '';
+  document.getElementById('adminErr').style.display = 'none';
+}
 
-function adminLogin(){
-  const pass = document.getElementById('adminPass').value;
-  if(pass === ADMIN_PASSWORD){
-    adminLoggedIn = true;
-    document.getElementById('adminLoginBlock').style.display = 'none';
-    document.getElementById('adminPanelBlock').style.display = 'block';
-    document.getElementById('adminErr').style.display = 'none';
-    renderAdminPending();
-  } else {
-    document.getElementById('adminErr').style.display = 'block';
+function closeAdmin(){
+  document.getElementById('adminOverlay').style.display = 'none';
+  if(fbSignOut) fbSignOut().catch(() => {});
+}
+
+function adminLogout(){
+  if(fbSignOut) fbSignOut().catch(() => {});
+}
+
+async function adminLogin(){
+  const passEl = document.getElementById('adminPass');
+  const pass = passEl.value;
+  const errEl = document.getElementById('adminErr');
+  if(!fbSignIn){ errEl.textContent = 'ระบบยังเชื่อมต่อไม่พร้อม ลองใหม่อีกครั้ง'; errEl.style.display = 'block'; return; }
+  try{
+    await fbSignIn(pass);
+    errEl.style.display = 'none';
+    passEl.value = '';
+    // onAuthStateChanged (set up in initFirebaseHistorySync) flips the
+    // UI over to adminPanelBlock and renders everything automatically.
+  } catch(err){
+    errEl.textContent = 'อีเมล/รหัสผ่านไม่ถูกต้อง';
+    errEl.style.display = 'block';
   }
 }
 
+function renderAdminStats(){
+  const wrap = document.getElementById('adminStats');
+  if(!wrap) return;
+  const total = donations.reduce((sum, d) => sum + (d.amount || 0), 0);
+  const donorCount = new Set(donations.map(d => d.name)).size;
+  wrap.innerHTML = `
+    <div class="admin-stat"><div class="as-v">₭${total.toLocaleString()}</div><div class="as-k">ยอดรวม</div></div>
+    <div class="admin-stat"><div class="as-v">${donorCount}</div><div class="as-k">ผู้บริจาค</div></div>
+    <div class="admin-stat"><div class="as-v">${pendingDonations.length}</div><div class="as-k">รอยืนยัน</div></div>
+  `;
+}
+
 function renderAdminPending(){
+  renderAdminStats();
   const wrap = document.getElementById('adminPendingList');
   if(!wrap) return;
   if(pendingDonations.length === 0){
@@ -1311,6 +1428,7 @@ function confirmPending(id){
   const amtEl = document.getElementById('amt-' + id);
   const amt = parseFloat(amtEl.value);
   if(!amt || amt <= 0 || !isFinite(amt)){ amtEl.focus(); return; }
+  if(!confirm(`ยืนยันยอดบริจาคของ "${p.name}" จำนวน ₭${amt.toLocaleString()} ใช่ไหม?`)) return;
 
   fbPush(fbDonationsRef, { name: p.name, amount: amt, time: p.time, confirmedAt: Date.now() }).catch(() => {});
   fbRemove(fbRef(fbDb, 'pendingDonations/' + id)).catch(() => {});
@@ -1318,7 +1436,106 @@ function confirmPending(id){
 
 function rejectPending(id){
   if(!fbDb || !fbRef || !fbRemove) return;
+  const p = pendingDonations.find(x => x.id === id);
+  if(!confirm(`ลบรายการ "รอยืนยัน" ของ "${p ? p.name : ''}" ทิ้งใช่ไหม?`)) return;
   fbRemove(fbRef(fbDb, 'pendingDonations/' + id)).catch(() => {});
+}
+
+// -----------------------------------------------------------------
+// Confirmed-donor management — search, edit (name + amount), delete.
+// Every edit/delete needs the button click AND a confirm() dialog —
+// two steps — so a stray tap never silently changes real numbers.
+// -----------------------------------------------------------------
+let adminEditingId = null;
+
+function renderAdminDonations(){
+  const wrap = document.getElementById('adminDonationsList');
+  if(!wrap) return;
+  const searchEl = document.getElementById('adminSearch');
+  const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+
+  const rows = donations
+    .filter(d => !q || (d.name || '').toLowerCase().includes(q))
+    .sort((a,b) => (b.confirmedAt || 0) - (a.confirmedAt || 0));
+
+  if(rows.length === 0){
+    wrap.innerHTML = '<div class="history-empty">ไม่พบรายการ</div>';
+    return;
+  }
+
+  wrap.innerHTML = rows.map(d => {
+    if(d.id === adminEditingId){
+      return `
+        <div class="admin-donation-row editing">
+          <input type="text" class="ad-name-input" id="edit-name-${d.id}" value="${escapeHtml(d.name)}" maxlength="24">
+          <input type="number" class="ad-amt-input" id="edit-amt-${d.id}" value="${d.amount}" min="1">
+          <button class="ad-save" onclick="saveDonationEdit('${d.id}')">บันทึก</button>
+          <button class="ad-cancel" onclick="cancelDonationEdit()">ยกเลิก</button>
+        </div>
+      `;
+    }
+    return `
+      <div class="admin-donation-row">
+        <span class="ad-name">${escapeHtml(d.name)}</span>
+        <span class="ad-amt mono">₭${Number(d.amount).toLocaleString()}</span>
+        <button class="ad-edit" onclick="startDonationEdit('${d.id}')">แก้ไข</button>
+        <button class="ad-del" onclick="deleteDonationConfirmed('${d.id}')">ลบ</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function startDonationEdit(id){
+  adminEditingId = id;
+  renderAdminDonations();
+}
+
+function cancelDonationEdit(){
+  adminEditingId = null;
+  renderAdminDonations();
+}
+
+function saveDonationEdit(id){
+  if(!fbDb || !fbRef || !fbUpdate) return;
+  const d = donations.find(x => x.id === id);
+  if(!d) return;
+  const nameEl = document.getElementById('edit-name-' + id);
+  const amtEl = document.getElementById('edit-amt-' + id);
+  const newName = nameEl.value.trim().slice(0,24);
+  const newAmt = parseFloat(amtEl.value);
+  if(!newName){ nameEl.focus(); return; }
+  if(!newAmt || newAmt <= 0 || !isFinite(newAmt)){ amtEl.focus(); return; }
+
+  if(!confirm(`บันทึกการแก้ไข: "${d.name}" ₭${Number(d.amount).toLocaleString()} → "${newName}" ₭${newAmt.toLocaleString()} ใช่ไหม?`)) return;
+
+  fbUpdate(fbRef(fbDb, 'donations/' + id), { name: newName, amount: newAmt }).catch(() => {});
+  adminEditingId = null;
+}
+
+function deleteDonationConfirmed(id){
+  if(!fbDb || !fbRef || !fbRemove) return;
+  const d = donations.find(x => x.id === id);
+  if(!d) return;
+  if(!confirm(`ลบรายการบริจาคของ "${d.name}" (₭${Number(d.amount).toLocaleString()}) ออกถาวรใช่ไหม? การลบนี้กู้คืนไม่ได้`)) return;
+  fbRemove(fbRef(fbDb, 'donations/' + id)).catch(() => {});
+}
+
+function manualAddDonation(){
+  if(!fbPush || !fbDonationsRef) return;
+  const nameEl = document.getElementById('manualDonorName');
+  const amtEl = document.getElementById('manualDonorAmount');
+  const name = nameEl.value.trim().slice(0,24);
+  const amt = parseFloat(amtEl.value);
+  if(!name){ nameEl.focus(); return; }
+  if(!amt || amt <= 0 || !isFinite(amt)){ amtEl.focus(); return; }
+  if(!confirm(`เพิ่มรายการบริจาคด้วยมือ: "${name}" ₭${amt.toLocaleString()} ใช่ไหม?`)) return;
+
+  const t = getSyncedTime();
+  const pad = n => String(n).padStart(2,'0');
+  const timeStr = `${pad(t.getUTCDate())}/${pad(t.getUTCMonth()+1)} ${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`;
+  fbPush(fbDonationsRef, { name, amount: amt, time: timeStr, confirmedAt: Date.now() }).catch(() => {});
+  nameEl.value = '';
+  amtEl.value = '';
 }
 
 // -----------------------------------------------------------------
