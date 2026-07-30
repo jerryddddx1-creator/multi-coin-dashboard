@@ -41,6 +41,7 @@
   html, body{
     -webkit-tap-highlight-color: transparent;
     tap-highlight-color: transparent;
+    overscroll-behavior: none;
   }
   a, button, input, .sym-box, .admin-link, .pay-copy, .warn-close, .modal-close, .donate-form button{
     -webkit-touch-callout: none;
@@ -592,18 +593,18 @@
 
   /* -------- Detail modal -------- */
   .modal-overlay{
-    position: fixed;
-    top: -4px; left: -4px; right: -4px; bottom: -4px;
+    position: fixed; inset: 0;
     background: rgba(3,4,7,0.55);
     backdrop-filter: blur(16px) saturate(140%);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
     display:flex; align-items:center; justify-content:center;
-    padding: 24px;
+    padding: 20px;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.28s ease, visibility 0s linear 0.28s;
     z-index: 1000;
+    overscroll-behavior: none;
   }
   .modal-overlay.show{
     opacity: 1;
